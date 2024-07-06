@@ -440,3 +440,9 @@ yarn-error.log*
 # AWS
 ######
 */.aws-sam/*
+
+## Others
+*/temp/*
+**/testdata/*
+temp_*
+temp.py
