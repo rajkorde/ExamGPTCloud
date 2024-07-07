@@ -28,9 +28,7 @@ def upload_file_to_s3(
 
 def main() -> None:
     url, fields = get_presigned_url(api_url, file_path)
-    print(f"Presigned Url: {url}")
-    print(f"fields: {fields}")
-    print(f"Fields_type: {type(fields)}")
+    print("Presigned S3 url generated.")
 
     if not Path(file_path).exists():
         print(f"Error: file not found: {file_path}")

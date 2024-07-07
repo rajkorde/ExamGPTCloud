@@ -1,7 +1,8 @@
 import json
+from typing import Any
 
 
-def handler(event, context):
+def handler(event: dict[str, Any], context: Any):
     message = "In Chunking code"
     print(f"{event=}")
     print(f"{message=}")
