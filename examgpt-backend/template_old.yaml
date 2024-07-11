@@ -32,10 +32,11 @@ Resources:
       StageName: Prod
 
   # Lambda Functions
-  UploadFunction:
+  UploadHandlerFunction:
     Type: AWS::Serverless::Function
     Properties:
-      PackageType: Image
+      CodeUri: examgpt_backend/
+      Handler: upload.handler
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref ContentBucket
@@ -49,15 +50,12 @@ Resources:
             Path: /upload
             Method: POST
             RestApiId: !Ref UploadRestApi
-    Metadata:
-      Dockerfile: upload.Dockerfile
-      DockerContext: ./examgpt_backend
-      DockerTag: python3.12-v1
 
-  ChunkerFunction:
+  ChunkingFunction:
     Type: AWS::Serverless::Function
     Properties:
-      PackageType: Image
+      CodeUri: examgpt_backend/
+      Handler: chunker.handler
       Events:
         S3Event:
           Type: S3
@@ -65,10 +63,6 @@ Resources:
             Bucket: !Ref ContentBucket
             Events:
               - s3:ObjectCreated:*
-    Metadata:
-      Dockerfile: chunker.Dockerfile
-      DockerContext: ./examgpt_backend
-      DockerTag: python3.12-v1
 
   # Connectors
   ChunkingLambdaContentBucketConnector:

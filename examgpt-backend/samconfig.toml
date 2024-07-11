@@ -19,7 +19,7 @@ confirm_changeset = true
 resolve_s3 = true
 s3_prefix = "examgpt-backend"
 region = "us-west-2"
-image_repositories = []
+image_repositories = ["UploadFunction=992382587769.dkr.ecr.us-west-2.amazonaws.com/examgptbackendd7e5d981/uploadfunctiondd04e321repo", "ChunkerFunction=992382587769.dkr.ecr.us-west-2.amazonaws.com/examgptbackendd7e5d981/chunkerfunction22a982a5repo"]
 
 [default.package.parameters]
 resolve_s3 = true
