@@ -12,9 +12,6 @@ Globals:
   Function:
     Timeout: 30
     MemorySize: 128
-    Runtime: python3.12
-    Architectures:
-      - x86_64
 
 Resources:
   # S3 Buckets
@@ -71,11 +68,11 @@ Resources:
       DockerTag: python3.12-v1
 
   # Connectors
-  ChunkingLambdaContentBucketConnector:
+  ChunkerFunctionLambdaContentBucketConnector:
     Type: AWS::Serverless::Connector
     Properties:
       Source:
-        Id: ChunkingFunction
+        Id: ChunkerFunction
       Destination:
         Id: ContentBucket
       Permissions:
@@ -85,12 +82,12 @@ Outputs:
   UploadRestApi:
     Description: "API Gateway endpoint for uploading files"
     Value: !Sub "https://${UploadRestApi}.execute-api.${AWS::Region}.amazonaws.com/Stage/upload/"
-  ChunkingFunction:
+  ChunkerFunction:
     Description: "Function that chunks uploaded file"
-    Value: !GetAtt ChunkingFunction.Arn
-  ChunkingFunctionIamRole:
-    Description: "Implicit IAM Role created for ChunkingFunction"
-    Value: !GetAtt ChunkingFunctionRole.Arn
+    Value: !GetAtt ChunkerFunction.Arn
+  ChunkerFunctionIamRole:
+    Description: "Implicit IAM Role created for ChunkerFunction"
+    Value: !GetAtt ChunkerFunctionRole.Arn
   S3Bucket:
     Description: "Bucket where uploaded files are stored"
     Value: !GetAtt ContentBucket.Arn

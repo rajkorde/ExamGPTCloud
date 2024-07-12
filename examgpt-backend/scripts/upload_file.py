@@ -3,8 +3,8 @@ from typing import Any
 
 import requests
 
-api_url = "https://aer2di0h2m.execute-api.us-west-2.amazonaws.com/Stage/upload"
-file_path = "testdata/aws2.pdf"
+api_url = "https://tem216ceqg.execute-api.us-west-2.amazonaws.com/Stage/upload"
+file_path = "scripts/testdata/aws2.pdf"
 
 
 def get_presigned_url(api_url: str, file_path: str):
