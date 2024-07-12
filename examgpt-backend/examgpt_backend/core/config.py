@@ -24,17 +24,28 @@ class ApplicationSettings(BaseSettings):
         super().__init__(**kwargs)
         assert load_dotenv()
 
-    # class Config:
-    #     env_file = ".env"
-
     def __post_init__(self):
         self.configure_logging(self.log_level)
+
+    def _reconfigure_logger_to_basic(self) -> None:
+        logger.remove()
+        log_format = "{level} - {module}:{function}:{line} - {message}"
+        logger.add(
+            sink=lambda msg: print(msg, end=""),
+            format=log_format,
+            level=self.log_level,
+            colorize=False,
+        )
 
     def configure_logging(self, level: str):
         logger.remove()
         logger.add(sys.stdout, level=level.upper())
 
     def get_logger(self):
+        return logger
+
+    def get_basic_logger(self):
+        self._reconfigure_logger_to_basic()
         return logger
 
 
