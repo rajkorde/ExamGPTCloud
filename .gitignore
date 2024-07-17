@@ -446,3 +446,6 @@ yarn-error.log*
 **/testdata/*
 temp_*
 temp.py
+
+samconfig.toml
+scripts/*

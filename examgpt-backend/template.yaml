@@ -14,17 +14,6 @@ Globals:
     MemorySize: 128
 
 Resources:
-  # ECR Repositories
-  UploadRepository:
-    Type: AWS::ECR::PublicRepository
-    Properties:
-      RepositoryName: !Sub "${AWS::StackName}-upload-repo"
-
-  ChunkerRepository:
-    Type: AWS::ECR::PublicRepository
-    Properties:
-      RepositoryName: !Sub "${AWS::StackName}-chunker-repo"
-
   # S3 Buckets
   ContentBucket:
     Type: AWS::S3::Bucket
@@ -44,7 +33,6 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       PackageType: Image
-      ImageUri: !Sub "${UploadRepository.RepositoryUri}:$LATEST"
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref ContentBucket
@@ -62,13 +50,11 @@ Resources:
       Dockerfile: upload.Dockerfile
       DockerContext: ./examgpt_backend
       DockerTag: python3.12-v1
-      DockerImageRepository: !Ref ChunkerRepository
 
   ChunkerFunction:
     Type: AWS::Serverless::Function
     Properties:
       PackageType: Image
-      ImageUri: !Sub "${ChunkerRepository.RepositoryUri}:$LATEST"
       Events:
         S3Event:
           Type: S3
@@ -80,7 +66,6 @@ Resources:
       Dockerfile: chunker.Dockerfile
       DockerContext: ./examgpt_backend
       DockerTag: python3.12-v1
-      DockerImageRepository: !Ref ChunkerRepository
 
   # Connectors
   ChunkerFunctionLambdaContentBucketConnector:
@@ -106,9 +91,3 @@ Outputs:
   S3Bucket:
     Description: "Bucket where uploaded files are stored"
     Value: !GetAtt ContentBucket.Arn
-  ChunkerRepository:
-    Description: "Public ECR repository for ChunkerFunction"
-    Value: !Ref ChunkerRepository
-  UploadRepository:
-    Description: "Public ECR repository for UploadFunction"
-    Value: !Ref UploadRepository

@@ -3,7 +3,8 @@ from typing import Any
 
 import requests
 
-api_url = "https://tem216ceqg.execute-api.us-west-2.amazonaws.com/Stage/upload"
+api_url = "https://mfxdijtl44.execute-api.us-west-2.amazonaws.com/Stage/upload"
+# api_url = "http://127.0.0.1:3000/upload"
 file_path = "scripts/testdata/aws2.pdf"
 
 
@@ -29,6 +30,7 @@ def upload_file_to_s3(
 def main() -> None:
     url, fields = get_presigned_url(api_url, file_path)
     print("Presigned S3 url generated.")
+    print(url)
 
     if not Path(file_path).exists():
         print(f"Error: file not found: {file_path}")
