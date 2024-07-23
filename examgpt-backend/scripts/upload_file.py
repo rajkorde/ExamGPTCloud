@@ -1,19 +1,34 @@
 from pathlib import Path
 from typing import Any
 
+import boto3
 import requests
+from loguru import logger
 
-api_url = "https://mfxdijtl44.execute-api.us-west-2.amazonaws.com/Stage/upload"
-# api_url = "http://127.0.0.1:3000/upload"
+region = "us-west-2"
+stage = "Stage"
 file_path = "scripts/testdata/aws2.pdf"
+exam_name = "AWS Solution Architect Associate Certification Exam"
+
+
+def get_api_url():
+    client = boto3.client("apigateway", region_name=region)
+    apis = client.get_rest_apis()
+    if len(apis["items"]) > 1:
+        logger.warning(f"{apis["items"]} API endpoints found. Using the first one.")
+    api = apis["items"][0]
+
+    return f"https://{api['id']}.execute-api.{region}.amazonaws.com/{stage}/upload"
 
 
 def get_presigned_url(api_url: str, file_path: str):
-    response = requests.post(api_url, json={"filename": file_path})
+    exam = {"exam_name": exam_name, "filename": file_path}
+    response = requests.post(api_url, json=exam)
     response.raise_for_status()
     presigned_url = response.json()["url"]["url"]
     fields = response.json()["url"]["fields"]
-    return presigned_url, fields
+    exam_id = response.json()["exam_id"]
+    return presigned_url, fields, exam_id
 
 
 def upload_file_to_s3(
@@ -28,9 +43,12 @@ def upload_file_to_s3(
 
 
 def main() -> None:
-    url, fields = get_presigned_url(api_url, file_path)
+    api_url = get_api_url()
+    print(f"Using api: {api_url}")
+    url, fields, exam_id = get_presigned_url(api_url, file_path)
     print("Presigned S3 url generated.")
     print(url)
+    print(f"Exam code: {exam_id}")
 
     if not Path(file_path).exists():
         print(f"Error: file not found: {file_path}")

@@ -5,6 +5,7 @@ from typing import Any, Optional
 
 import boto3
 from botocore.exceptions import ClientError
+from core.exam import Exam
 
 s3 = boto3.client("s3")
 logger = logging.getLogger(__name__)
@@ -44,20 +45,34 @@ def get_error(message: str = "Something went wrong!") -> dict[str, Any]:
     }
 
 
+def get_item(body: dict[str, Any], item: str):
+    if item not in body:
+        print(f"No property called {item} in request")
+        return None
+    return body[item]
+
+
+def parse_event(event: dict[Any, Any]):
+    body_json = json.loads(event["body"])
+    filename = get_item(body_json, "filename")
+    exam_name = get_item(body_json, "exam_name")
+    return filename, exam_name
+
+
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     bucket_name = os.environ["CONTENT_BUCKET"]
     if not bucket_name:
         logger.error("Could not find bucket name in environment variables")
         return get_error()
 
-    body_json = json.loads(event["body"])
-    if "filename" in body_json:
-        filename = body_json["filename"]
-    else:
-        print("No property called filename in request")
-        print(f"{event=}")
-        filename = "test/test.pdf"
+    filename, exam_name = parse_event(event)
+    if not filename or not exam_name:
+        return get_error()
     print(f"Received request for uploading file: {filename}")
+
+    exam = Exam(name=exam_name)
+    filename = f"{exam_name}/sources/{os.path.basename(filename)}"
+    exam.sources.append(filename)
 
     signed_url = create_presigned_url(bucket_name, object_name=filename)
     if not signed_url:
@@ -69,9 +84,5 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
 
     return {
         "statusCode": 200,
-        "body": json.dumps(
-            {
-                "url": signed_url,
-            }
-        ),
+        "body": json.dumps({"url": signed_url, "exam_id": exam.exam_id}),
     }

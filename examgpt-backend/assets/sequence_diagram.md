@@ -4,28 +4,37 @@ sequenceDiagram
   participant ag as API Gateway
   participant uf as UploadFunction
   participant S3
-  participant SNS
   participant ddb as DynamoDB
   participant cf as ChunkerFunction
+  participant SNS
   participant gf as GeneratorFunction
 
-
+  # Upload file - Get presigned URL
   activate fe
   fe ->>+ ag: /upload
   ag ->> uf: Invoke lambda
   uf ->> S3: Get presigned Url
-  S3 -->> uf: Url
-  uf -->> ag: Url
-  ag -->> fe: Url
+  uf ->> ddb: Create Exam
+  S3 -->> uf: Url, exam_id, exam_code
+  uf -->> ag: Url, exam_id, exam_code
+  ag -->> fe: Url, exam_id, exam_code
+  deactivate fe
+
+  # Upload file - Upload to presigned URL
   fe ->> S3: Upload file
-  uf ->> SNS: File to chunk
-  uf -->> ag: Exam code
-  ag -->>- fe: Exam code
+
+  # Chunk File
+  activate fe
+  fe ->>+ ag: /chunk
+  ag ->> cf: exam_id, exam_code, object_arn
+  cf ->> SNS: Batches of chunk ids
+  cf ->> ddb: Update table with chunks
+  cf -->> ag: status
+  ag -->>-fe: status
   deactivate fe
 
   SNS ->> cf: File to chunk
-  cf ->> SNS: Batches of chunk ids
-  cf ->> DynamoDB: Update table with chunks
+
 
   SNS ->> gf: Generate questions
   gf ->> ddb: Update table with questions
