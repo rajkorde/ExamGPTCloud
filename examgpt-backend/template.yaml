@@ -12,6 +12,7 @@ Globals:
   Function:
     Timeout: 30
     MemorySize: 128
+    Runtime: python3.12
 
 Resources:
   # S3 Buckets
@@ -32,7 +33,8 @@ Resources:
   UploadFunction:
     Type: AWS::Serverless::Function
     Properties:
-      PackageType: Image
+      CodeUri: examgpt_backend/
+      Handler: upload.handler
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref ContentBucket
@@ -46,15 +48,12 @@ Resources:
             Path: /upload
             Method: POST
             RestApiId: !Ref UploadRestApi
-    Metadata:
-      Dockerfile: upload.Dockerfile
-      DockerContext: ./examgpt_backend
-      DockerTag: python3.12-v1
 
   ChunkerFunction:
     Type: AWS::Serverless::Function
     Properties:
-      PackageType: Image
+      CodeUri: examgpt_backend/
+      Handler: chunker.handler
       Events:
         S3Event:
           Type: S3
@@ -62,10 +61,6 @@ Resources:
             Bucket: !Ref ContentBucket
             Events:
               - s3:ObjectCreated:*
-    Metadata:
-      Dockerfile: chunker.Dockerfile
-      DockerContext: ./examgpt_backend
-      DockerTag: python3.12-v1
 
   # Connectors
   ChunkerFunctionLambdaContentBucketConnector:
@@ -82,6 +77,9 @@ Outputs:
   UploadRestApi:
     Description: "API Gateway endpoint for uploading files"
     Value: !Sub "https://${UploadRestApi}.execute-api.${AWS::Region}.amazonaws.com/Stage/upload/"
+  UploadFunction:
+    Description: "Function that uploads file"
+    Value: !GetAtt UploadFunction.Arn
   ChunkerFunction:
     Description: "Function that chunks uploaded file"
     Value: !GetAtt ChunkerFunction.Arn
