@@ -13,6 +13,10 @@ Globals:
     Timeout: 30
     MemorySize: 128
     Runtime: python3.12
+    Environment:
+      Variables:
+        CONTENT_BUCKET: !Ref ContentBucket
+        EXAM_TABLE: !Ref ExamTable
 
 Resources:
   # S3 Buckets
@@ -22,6 +26,21 @@ Resources:
       BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-bucket"
 
   # SNS Topics
+
+  # DynamoDB
+  ExamTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      KeySchema:
+        - AttributeName: exam_id
+          KeyType: HASH
+      AttributeDefinitions:
+        - AttributeName: exam_id
+          AttributeType: S
+      TableName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-exam"
 
   # Rest APIs
   UploadRestApi:
@@ -35,12 +54,14 @@ Resources:
     Properties:
       CodeUri: examgpt_backend/
       Handler: upload.handler
+      Environment:
+        Variables:
+          EXAM_TABLE: !Ref ExamTable
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref ContentBucket
-      Environment:
-        Variables:
-          CONTENT_BUCKET: !Ref ContentBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ExamTable
       Events:
         APIEvent:
           Type: Api
@@ -54,13 +75,13 @@ Resources:
     Properties:
       CodeUri: examgpt_backend/
       Handler: chunker.handler
-      Events:
-        S3Event:
-          Type: S3
-          Properties:
-            Bucket: !Ref ContentBucket
-            Events:
-              - s3:ObjectCreated:*
+      # Events:
+      #   S3Event:
+      #     Type: S3
+      #     Properties:
+      #       Bucket: !Ref ContentBucket
+      #       Events:
+      #         - s3:ObjectCreated:*
 
   SandboxFunction:
     Type: AWS::Serverless::Function
@@ -76,7 +97,7 @@ Resources:
             RestApiId: !Ref UploadRestApi
 
   # Connectors
-  ChunkerFunctionLambdaContentBucketConnector:
+  ChunkerFunctionContentBucketConnector:
     Type: AWS::Serverless::Connector
     Properties:
       Source:
@@ -90,15 +111,15 @@ Outputs:
   UploadRestApi:
     Description: "API Gateway endpoint for uploading files"
     Value: !Sub "https://${UploadRestApi}.execute-api.${AWS::Region}.amazonaws.com/Stage"
-  UploadFunction:
-    Description: "Function that uploads file"
-    Value: !GetAtt UploadFunction.Arn
-  ChunkerFunction:
-    Description: "Function that chunks uploaded file"
-    Value: !GetAtt ChunkerFunction.Arn
-  SandboxFunction:
-    Description: "Sandbox Lambda for testing resources"
-    Value: !GetAtt SandboxFunction.Arn
-  S3Bucket:
-    Description: "Bucket where uploaded files are stored"
-    Value: !GetAtt ContentBucket.Arn
+  # UploadFunction:
+  #   Description: "Function that uploads file"
+  #   Value: !GetAtt UploadFunction.Arn
+  # ChunkerFunction:
+  #   Description: "Function that chunks uploaded file"
+  #   Value: !GetAtt ChunkerFunction.Arn
+  # SandboxFunction:
+  #   Description: "Sandbox Lambda for testing resources"
+  #   Value: !GetAtt SandboxFunction.Arn
+  # S3Bucket:
+  #   Description: "Bucket where uploaded files are stored"
+  #   Value: !GetAtt ContentBucket.Arn

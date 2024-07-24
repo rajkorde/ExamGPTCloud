@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import sys
 from typing import Any, Optional
 
 import boto3
@@ -65,6 +64,14 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     if not bucket_name:
         logger.error("Could not find bucket name in environment variables")
         return get_error()
+
+    exam_table = os.environ["EXAM_TABLE"]
+    if not exam_table:
+        logger.error("Could not find exam table in environment variables")
+        return get_error()
+
+    print(f"Content Bucket: {bucket_name}")
+    print(f"Exam Table: {exam_table}")
 
     filename, exam_name = parse_event(event)
     if not filename or not exam_name:
