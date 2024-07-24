@@ -6,8 +6,10 @@ from typing import Any, Optional
 import boto3
 from botocore.exceptions import ClientError
 from core.exam import Exam
+from pydantic import ValidationError
 
 s3 = boto3.client("s3")
+ddb = boto3.resource("dynamodb")
 logger = logging.getLogger(__name__)
 
 
@@ -59,6 +61,14 @@ def parse_event(event: dict[Any, Any]):
     return filename, exam_name
 
 
+def save_exam(exam: Exam, table_name: str):
+    table = ddb.Table(table_name)
+    try:
+        table.put_item(Item=exam.model_dump())
+    except ValidationError as e:
+        print(f"Validation error: {e}")
+
+
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     bucket_name = os.environ["CONTENT_BUCKET"]
     if not bucket_name:
@@ -79,6 +89,7 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     print(f"Received request for uploading file: {filename}")
 
     exam = Exam(name=exam_name)
+
     filename = f"{exam.exam_id}/sources/{os.path.basename(filename)}"
     exam.sources.append(filename)
     print(f"Updated filename: {filename}")
@@ -90,6 +101,7 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
         return get_error(message)
 
     print("Generated presigned URL.")
+    save_exam(exam, exam_table)
 
     return {
         "statusCode": 200,
