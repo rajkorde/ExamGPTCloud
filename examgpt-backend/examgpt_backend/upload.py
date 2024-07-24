@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import sys
 from typing import Any, Optional
 
 import boto3
@@ -61,6 +62,9 @@ def parse_event(event: dict[Any, Any]):
 
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     bucket_name = os.environ["CONTENT_BUCKET"]
+    print(f"{os.getcwd()=}")
+    print(f"{sys.path=}")
+    print(f"{os.listdir()=}")
     if not bucket_name:
         logger.error("Could not find bucket name in environment variables")
         return get_error()
@@ -73,6 +77,7 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     exam = Exam(name=exam_name)
     filename = f"{exam_name}/sources/{os.path.basename(filename)}"
     exam.sources.append(filename)
+    print(f"Updated filename: {filename}")
 
     signed_url = create_presigned_url(bucket_name, object_name=filename)
     if not signed_url:

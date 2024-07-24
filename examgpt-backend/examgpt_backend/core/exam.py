@@ -3,7 +3,7 @@ from uuid import uuid4
 
 # Ignoring PylanceReportMissingTypeStubs for codenamize package
 from codenamize import codenamize  # type: ignore
-from examgpt_backend.utils.misc import get_current_time
+from utils.misc import get_current_time
 
 
 @dataclass
