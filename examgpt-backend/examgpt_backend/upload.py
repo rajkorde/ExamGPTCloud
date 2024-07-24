@@ -62,9 +62,6 @@ def parse_event(event: dict[Any, Any]):
 
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     bucket_name = os.environ["CONTENT_BUCKET"]
-    print(f"{os.getcwd()=}")
-    print(f"{sys.path=}")
-    print(f"{os.listdir()=}")
     if not bucket_name:
         logger.error("Could not find bucket name in environment variables")
         return get_error()
@@ -75,7 +72,7 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     print(f"Received request for uploading file: {filename}")
 
     exam = Exam(name=exam_name)
-    filename = f"{exam_name}/sources/{os.path.basename(filename)}"
+    filename = f"{exam.exam_id}/sources/{os.path.basename(filename)}"
     exam.sources.append(filename)
     print(f"Updated filename: {filename}")
 
