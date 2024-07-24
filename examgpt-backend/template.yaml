@@ -62,6 +62,19 @@ Resources:
             Events:
               - s3:ObjectCreated:*
 
+  SandboxFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: examgpt_backend/
+      Handler: sandbox.handler
+      Events:
+        APIEvent:
+          Type: Api
+          Properties:
+            Path: /sandbox
+            Method: POST
+            RestApiId: !Ref UploadRestApi
+
   # Connectors
   ChunkerFunctionLambdaContentBucketConnector:
     Type: AWS::Serverless::Connector
@@ -76,16 +89,16 @@ Resources:
 Outputs:
   UploadRestApi:
     Description: "API Gateway endpoint for uploading files"
-    Value: !Sub "https://${UploadRestApi}.execute-api.${AWS::Region}.amazonaws.com/Stage/upload/"
+    Value: !Sub "https://${UploadRestApi}.execute-api.${AWS::Region}.amazonaws.com/Stage"
   UploadFunction:
     Description: "Function that uploads file"
     Value: !GetAtt UploadFunction.Arn
   ChunkerFunction:
     Description: "Function that chunks uploaded file"
     Value: !GetAtt ChunkerFunction.Arn
-  ChunkerFunctionIamRole:
-    Description: "Implicit IAM Role created for ChunkerFunction"
-    Value: !GetAtt ChunkerFunctionRole.Arn
+  SandboxFunction:
+    Description: "Sandbox Lambda for testing resources"
+    Value: !GetAtt SandboxFunction.Arn
   S3Bucket:
     Description: "Bucket where uploaded files are stored"
     Value: !GetAtt ContentBucket.Arn
