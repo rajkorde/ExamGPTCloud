@@ -10,12 +10,11 @@ Description: >
 
 Globals:
   Function:
-    Timeout: 30
+    Timeout: 300
     MemorySize: 128
     Runtime: python3.12
     Environment:
       Variables:
-        CONTENT_BUCKET: !Ref ContentBucket
         EXAM_TABLE: !Ref ExamTable
 
 Resources:
@@ -43,7 +42,7 @@ Resources:
       TableName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-exam"
 
   # Rest APIs
-  UploadRestApi:
+  ExamGPTRestApi:
     Type: AWS::Serverless::Api
     Properties:
       StageName: Prod
@@ -56,7 +55,7 @@ Resources:
       Handler: upload.handler
       Environment:
         Variables:
-          EXAM_TABLE: !Ref ExamTable
+          CONTENT_BUCKET: !Ref ContentBucket
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref ContentBucket
@@ -68,20 +67,20 @@ Resources:
           Properties:
             Path: /upload
             Method: POST
-            RestApiId: !Ref UploadRestApi
+            RestApiId: !Ref ExamGPTRestApi
 
   ChunkerFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: examgpt_backend/
       Handler: chunker.handler
-      # Events:
-      #   S3Event:
-      #     Type: S3
-      #     Properties:
-      #       Bucket: !Ref ContentBucket
-      #       Events:
-      #         - s3:ObjectCreated:*
+      Events:
+        S3Event:
+          Type: S3
+          Properties:
+            Bucket: !Ref ContentBucket
+            Events:
+              - s3:ObjectCreated:*
 
   SandboxFunction:
     Type: AWS::Serverless::Function
@@ -94,7 +93,7 @@ Resources:
           Properties:
             Path: /sandbox
             Method: POST
-            RestApiId: !Ref UploadRestApi
+            RestApiId: !Ref ExamGPTRestApi
 
   # Connectors
   ChunkerFunctionContentBucketConnector:
@@ -108,9 +107,9 @@ Resources:
         - Read
 
 Outputs:
-  UploadRestApi:
+  ExamGPTRestApi:
     Description: "API Gateway endpoint for uploading files"
-    Value: !Sub "https://${UploadRestApi}.execute-api.${AWS::Region}.amazonaws.com/Stage"
+    Value: !Sub "https://${ExamGPTRestApi}.execute-api.${AWS::Region}.amazonaws.com/Stage"
   # UploadFunction:
   #   Description: "Function that uploads file"
   #   Value: !GetAtt UploadFunction.Arn
