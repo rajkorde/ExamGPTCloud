@@ -15,22 +15,11 @@ def read_pdf_from_s3(bucket_name: str, object_key: str):
     print(f"Filesize: {os.path.getsize(local_filename)}")
 
     # Use PyMuPDFLoader to load the PDF
-    try:
-        print("initializing pymupdf")
-        loader = PyMuPDFLoader(local_filename)
-    except Exception as e:
-        print(e)
-
-    else:
-        try:
-            print("loading file")
-            pages = loader.load()
-        except Exception as e:
-            print(e)
-
+    loader = PyMuPDFLoader(local_filename)
+    pages = loader.load()
     # Print the number of pages
     print(f"The PDF has {len(pages)} pages.")
-    return pages[0].page_content
+    return pages
 
 
 def get_bucket_name(event: dict[str, Any]):
@@ -48,8 +37,11 @@ def handler(event: dict[str, Any], context: Any):
     bucket_name, object_key = get_bucket_name(event)
     print(f"{bucket_name}=")
     print(f"{object_key}=")
-    page = read_pdf_from_s3(bucket_name, object_key)
-    print(page)
+    pages = read_pdf_from_s3(bucket_name, object_key)
+    print(pages[65].page_content)
+
+    topic_name = os.environ["CHUNKS_TOPIC"]
+    print(topic_name)
 
     return {
         "statusCode": 200,

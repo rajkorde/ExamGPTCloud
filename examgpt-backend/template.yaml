@@ -24,6 +24,8 @@ Resources:
       BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-bucket"
 
   # SNS Topics
+  ChunksTopic:
+    Type: AWS::SNS::Topic
 
   # DynamoDB
   ExamTable:
@@ -75,6 +77,12 @@ Resources:
       CodeUri: examgpt_backend/
       Handler: chunker.handler
       MemorySize: 512
+      Environment:
+        Variables:
+          CHUNKS_TOPIC: !Ref ChunksTopic
+      Policies:
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt ChunksTopic.TopicName
       Events:
         S3Event:
           Type: S3
@@ -82,6 +90,17 @@ Resources:
             Bucket: !Ref ContentBucket
             Events:
               - s3:ObjectCreated:*
+
+  GenerateQAFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: examgpt_backend/
+      Handler: generate.handler
+      Events:
+        SNSEvent:
+          Type: SNS
+          Properties:
+            Topic: !Ref ChunksTopic
 
   SandboxFunction:
     Type: AWS::Serverless::Function
