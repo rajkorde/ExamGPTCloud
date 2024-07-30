@@ -6,6 +6,7 @@ import boto3
 from langchain_community.document_loaders import PyMuPDFLoader
 
 s3 = boto3.client("s3")
+sns = boto3.client("sns")
 
 
 def read_pdf_from_s3(bucket_name: str, object_key: str):
@@ -38,10 +39,17 @@ def handler(event: dict[str, Any], context: Any):
     print(f"{bucket_name}=")
     print(f"{object_key}=")
     pages = read_pdf_from_s3(bucket_name, object_key)
-    print(pages[65].page_content)
+    chunk = pages[65].page_content
+    print(chunk)
 
     topic_name = os.environ["CHUNKS_TOPIC"]
     print(topic_name)
+
+    sns.publish(
+        TopicArn=topic_name,
+        Message=json.dumps({"default": chunk}),
+        MessageStructure="json",
+    )
 
     return {
         "statusCode": 200,
