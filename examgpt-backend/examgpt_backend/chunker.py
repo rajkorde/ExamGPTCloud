@@ -36,7 +36,7 @@ def get_bucket_name(event: dict[str, Any]):
 def save_chunk(chunk: TextChunk, table_name: str):
     table = ddb.Table(table_name)
     try:
-        table.put_item(Item=json.dumps(chunk.to_dict()))
+        table.put_item(Item=chunk.to_dict())
     except ValidationError as e:
         print(f"Validation error: {e}")
 
@@ -55,7 +55,7 @@ def handler(event: dict[str, Any], context: Any):
     print(f"{object_key}=")
 
     folders = object_key.split("/")
-    if len(folders != 3):
+    if len(folders) != 3:
         print(
             f"Error: the object key does not have the right folder structure: {object_key}"
         )
