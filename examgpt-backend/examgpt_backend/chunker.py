@@ -3,10 +3,13 @@ import os
 from typing import Any
 
 import boto3
+from core.chunk import TextChunk
 from langchain_community.document_loaders import PyMuPDFLoader
+from pydantic import ValidationError
 
 s3 = boto3.client("s3")
 sns = boto3.client("sns")
+ddb = boto3.resource("dynamodb")
 
 
 def read_pdf_from_s3(bucket_name: str, object_key: str):
@@ -30,7 +33,19 @@ def get_bucket_name(event: dict[str, Any]):
     return bucket_name, object_key
 
 
+def save_chunk(chunk: TextChunk, table_name: str):
+    table = ddb.Table(table_name)
+    try:
+        table.put_item(Item=json.dumps(chunk.to_dict()))
+    except ValidationError as e:
+        print(f"Validation error: {e}")
+
+
 def handler(event: dict[str, Any], context: Any):
+    chunk_table = os.environ["CHUNK_TABLE"]
+    if not chunk_table:
+        print("Error: Could not find exam table in environment variables")
+
     message = "In Chunking code"
     print(f"{event=}")
     print(f"{message=}")
@@ -38,11 +53,24 @@ def handler(event: dict[str, Any], context: Any):
     bucket_name, object_key = get_bucket_name(event)
     print(f"{bucket_name}=")
     print(f"{object_key}=")
+
+    folders = object_key.split("/")
+    if len(folders != 3):
+        print(
+            f"Error: the object key does not have the right folder structure: {object_key}"
+        )
+    exam_id = folders[0]
+
     pages = read_pdf_from_s3(bucket_name, object_key)
+
+    for i, page in enumerate(pages):
+        chunk = TextChunk(exam_id=exam_id, text=page.page_content, page_number=i)
+        save_chunk(chunk, chunk_table)
+
     chunk = pages[65].page_content
     print(chunk)
 
-    topic_name = os.environ["CHUNKS_TOPIC"]
+    topic_name = os.environ["CHUNK_TOPIC"]
     print(topic_name)
 
     sns.publish(

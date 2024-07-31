@@ -16,6 +16,7 @@ Globals:
       Variables:
         EXAM_TABLE: !Ref ExamTable
 
+# TODO: enable cloudwatch logs and metrics to expire after 3 days
 Resources:
   # S3 Buckets
   ContentBucket:
@@ -24,7 +25,7 @@ Resources:
       BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-bucket"
 
   # SNS Topics
-  ChunksTopic:
+  ChunkTopic:
     Type: AWS::SNS::Topic
 
   # DynamoDB
@@ -32,8 +33,8 @@ Resources:
     Type: AWS::DynamoDB::Table
     Properties:
       ProvisionedThroughput:
-        ReadCapacityUnits: 5
-        WriteCapacityUnits: 5
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
       KeySchema:
         - AttributeName: exam_id
           KeyType: HASH
@@ -41,6 +42,37 @@ Resources:
         - AttributeName: exam_id
           AttributeType: S
       TableName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-exam"
+
+  # TODO: switch billing mode to use the full free tier capacity
+  ChunkTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-chunk"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
+      KeySchema:
+        - AttributeName: chunk_id
+          KeyType: HASH
+        - AttributeName: exam_id
+          KeyType: RANGE
+      AttributeDefinitions:
+        - AttributeName: chunk_id
+          AttributeType: S
+        - AttributeName: exam_id
+          AttributeType: S
+      GlobalSecondaryIndexes:
+        - IndexName: ExamIndex
+          KeySchema:
+            - AttributeName: exam_id
+              KeyType: HASH
+            - AttributeName: chunk_id
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 1
+            WriteCapacityUnits: 1
 
   # Rest APIs
   ExamGPTRestApi:
@@ -79,10 +111,11 @@ Resources:
       MemorySize: 512
       Environment:
         Variables:
-          CHUNKS_TOPIC: !Ref ChunksTopic
+          CHUNK_TOPIC: !Ref ChunkTopic
+          CHUNK_TABLE: !Ref ChunkTable
       Policies:
         - SNSPublishMessagePolicy:
-            TopicName: !GetAtt ChunksTopic.TopicName
+            TopicName: !GetAtt ChunkTopic.TopicName
       Events:
         S3Event:
           Type: S3
@@ -100,7 +133,7 @@ Resources:
         SNSEvent:
           Type: SNS
           Properties:
-            Topic: !Ref ChunksTopic
+            Topic: !Ref ChunkTopic
 
   SandboxFunction:
     Type: AWS::Serverless::Function
