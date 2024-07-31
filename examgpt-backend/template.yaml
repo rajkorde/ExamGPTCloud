@@ -116,6 +116,8 @@ Resources:
       Policies:
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ChunkTopic.TopicName
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ChunkTable
       Events:
         S3Event:
           Type: S3
