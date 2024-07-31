@@ -28,6 +28,35 @@ Resources:
   ChunkTopic:
     Type: AWS::SNS::Topic
 
+  # # Parameter Store
+  # ParameterStoreOpenAIKey:
+  #   Type: AWS::SSM::Parameter
+  #   Properties:
+  #     Name: /examgpt/OPENAI_API_KEY
+  #     Type: SecureString
+  #     Value: ${env:OPENAI_API_KEY}
+
+  # ParameterStoreTelegramToken:
+  #   Type: AWS::SSM::Parameter
+  #   Properties:
+  #     Name: /examgpt/TG_BOT_TOKEN
+  #     Type: SecureString
+  #     Value: ${env:TG_BOT_TOKEN}
+
+  # ParameterStoreModelFamily:
+  #   Type: AWS::SSM::Parameter
+  #   Properties:
+  #     Name: /examgpt/MODEL_FAMILY
+  #     Type: SecureString
+  #     Value: ${env:MODEL_FAMILY}
+
+  # ParameterStoreModelName:
+  #   Type: AWS::SSM::Parameter
+  #   Properties:
+  #     Name: /examgpt/MODEL_NAME
+  #     Type: SecureString
+  #     Value: ${env:MODEL_NAME}
+
   # DynamoDB
   ExamTable:
     Type: AWS::DynamoDB::Table
