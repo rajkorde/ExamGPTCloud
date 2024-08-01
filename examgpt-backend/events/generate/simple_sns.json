@@ -1,0 +1,22 @@
+{
+  "Records": [
+    {
+      "EventSource": "aws:sns",
+      "EventVersion": "1.0",
+      "EventSubscriptionArn": "arn:aws:sns:us-west-2:992382587769:examgpt-backend-ChunkTopic-mgvw1fcLBcTA:c3191701-976c-4bc2-b5bb-4ed549ed5177",
+      "Sns": {
+        "Type": "Notification",
+        "MessageId": "2ec87a32-31a4-5d2d-b75d-251427033985",
+        "TopicArn": "arn:aws:sns:us-west-2:992382587769:examgpt-backend-ChunkTopic-mgvw1fcLBcTA",
+        "Subject": "None",
+        "Message": " \n60 \nIP Address Classes \n \nIPv4 has five classes of IP address space. Address classes are legacy, and not really used in \ntoday’s modern environment. IP address classes are covered for historical purposes and so the \nreader can better understand classless interdomain routing (CIDR). \n \n• Class A addresses \n• 1.0.0.0- 126.255.255.255/8 \n• Class B addresses \n• 128.0.0.0- 191.255.255.255/16 \n• Class C addresses \n• 192.0.0.0- 223.255.255.255/24 \n• Class D addresses (Multicast)  \n• 224.0.0.0- 239.255.255.255 \n• Class E addresses (Experimental) \n• 240.0.0.0- 255.255.255.255 \n \n \nClassful addresses are not used anymore since there is a shortage of IP addresses. Instead, \nsubnetting is used to optimize IP address usage and availability.  \n \nSubnetting and Supernetting \n \nSince there are a limited number of IP addresses, it’s essential to use IP addresses carefully. \nOne way to make use of an organization’s IP address space with subnetting. Subnetting is \neffectively taking an IP network and chopping it into smaller networks. Please see the graphic \nbelow:  \n \n",
+        "Timestamp": "2024-08-01T23:04:07.310Z",
+        "SignatureVersion": "1",
+        "Signature": "BqSotkPHpG0t7KGVN/+YlxoqnhEcuoN1ClKB/vWI7AN8mep01esIr1DGPkdXhx8GRxDx8maFxsQtq2+DMxoK7Ba4Fk+VN7v/hxSahD9tDDJjHH2InXX2wUww+309rpgRnVYIaMzlxWiGK8hUCTMxPq2sZ8K5xjSduXPPZW9mX2oiQ27WvRiX7IVnjg5xm7L4wo/14TFl5VQm0JOiUrad8dvZfAuG4tM35NgYYlKp6Sen6BC9VapVeUWvhHb7w2hMdmpVvCgbjeokR3bnCID/U5PWYgBUqbYWGhRaaUMKa4oVtzbUYWoZsZjAukCHdy1ZKAie/+YL8xPjQLKlE1VTiw==",
+        "SigningCertUrl": "https://sns.us-west-2.amazonaws.com/SimpleNotificationService-60eadc530605d63b8e62a523676ef735.pem",
+        "UnsubscribeUrl": "https://sns.us-west-2.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-west-2:992382587769:examgpt-backend-ChunkTopic-mgvw1fcLBcTA:c3191701-976c-4bc2-b5bb-4ed549ed5177",
+        "MessageAttributes": {}
+      }
+    }
+  ]
+}

@@ -26,6 +26,9 @@ def handler(event: dict[str, Any], context: Any):
     print(message)
     print(f"{event}")
 
+    key = get_parameter(parameter_name=openai_key_name)
+    print(f"{key=}")
+
     return {
         "statusCode": 200,
         "body": json.dumps(
