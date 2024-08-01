@@ -1,7 +1,9 @@
 import json
+import os
 from typing import Any
 
 import boto3
+from ai.model_providers.openai import OpenAIProvider
 
 ssm = boto3.client("ssm")
 openai_key_name = "/examgpt/OPENAI_API_KEY"
@@ -24,16 +26,38 @@ def get_parameter(parameter_name: str, with_decryption: bool = True):
 def handler(event: dict[str, Any], context: Any):
     message = "Generating QAs based on messages"
     print(message)
-    print(f"{event}")
+    # print(f"{event}")
 
     key = get_parameter(parameter_name=openai_key_name)
+    keyname = openai_key_name.split("/")[-1]
+    if not key:
+        print(f"Error: Incorrect key from ssm parameter store: {key}")
+    else:
+        os.environ[keyname] = key
     print(f"{key=}")
+
+    chunk = event["Records"][0]["Sns"]["Message"]
+    print(f"{chunk=}")
+
+    model = OpenAIProvider()
+    chat = model.get_chat_model()
+
+    messages = [
+        (
+            "system",
+            "You are a helpful assistant that summarizes paragraphs",
+        ),
+        ("human", chunk),
+    ]
+
+    response = chat.invoke(messages)
+    print(response.content)
 
     return {
         "statusCode": 200,
         "body": json.dumps(
             {
-                "message": message,
+                "message": response.content,
             }
         ),
     }
