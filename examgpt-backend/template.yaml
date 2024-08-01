@@ -1,12 +1,8 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
-Description: >
+Description: |
   examgpt-backend
-
-  Backend for examgpt. 
-  * API gateway, Lambda and S3 used for uploading study material
-  * DynamoDB, Lambda, SNS used for storing examgpt data
-  * API Gateway, Lambda used for for telegram bot
+  Backend for examgpt.  * API gateway, Lambda and S3 used for uploading study material * DynamoDB, Lambda, SNS used for storing examgpt data * API Gateway, Lambda used for for telegram bot
 
 Globals:
   Function:
@@ -22,7 +18,7 @@ Resources:
   ContentBucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-bucket"
+      BucketName: !Sub ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-bucket
 
   # SNS Topics
   ChunkTopic:
@@ -70,13 +66,13 @@ Resources:
       AttributeDefinitions:
         - AttributeName: exam_id
           AttributeType: S
-      TableName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-exam"
+      TableName: !Sub ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-exam
 
   # TODO: switch billing mode to use the full free tier capacity
   ChunkTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub "${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-chunk"
+      TableName: !Sub ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-chunk
       ProvisionedThroughput:
         ReadCapacityUnits: 2
         WriteCapacityUnits: 2
@@ -160,6 +156,14 @@ Resources:
     Properties:
       CodeUri: examgpt_backend/
       Handler: generate.handler
+      Policies:
+        - Statement:
+            - Action:
+                - ssm:GetParameter
+                - ssm:GetParameters
+                - ssm:GetParametersByPath
+              Effect: Allow
+              Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/examgpt*
       Events:
         SNSEvent:
           Type: SNS
@@ -192,8 +196,8 @@ Resources:
 
 Outputs:
   ExamGPTRestApi:
-    Description: "API Gateway endpoint for uploading files"
-    Value: !Sub "https://${ExamGPTRestApi}.execute-api.${AWS::Region}.amazonaws.com/Stage"
+    Description: API Gateway endpoint for uploading files
+    Value: !Sub https://${ExamGPTRestApi}.execute-api.${AWS::Region}.amazonaws.com/Stage
   # UploadFunction:
   #   Description: "Function that uploads file"
   #   Value: !GetAtt UploadFunction.Arn

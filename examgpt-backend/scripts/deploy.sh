@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -e
+#set -e
 
 ENV_FILE="examgpt_backend/.env"
 
@@ -29,12 +29,11 @@ while IFS= read -r line; do
     export "$KEY"="$VALUE"
 done < $ENV_FILE
 
-printenv
 
 # echo "Building Solution..."
-# stdbuf -oL sam build
+sam build 
 
 # echo "Deploying Solution..."
-# stdbuf -oL sam deploy
+sam deploy
 
 

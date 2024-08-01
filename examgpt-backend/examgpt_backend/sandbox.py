@@ -7,5 +7,5 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
 
     return {
         "statusCode": 200,
-        "body": json.dumps({"id": "sandbox"}),
+        "body": json.dumps({"value": "test"}),
     }
