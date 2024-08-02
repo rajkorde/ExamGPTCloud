@@ -156,7 +156,12 @@ Resources:
     Properties:
       CodeUri: examgpt_backend/
       Handler: generate.handler
+      Environment:
+        Variables:
+          CHUNK_TABLE: !Ref ChunkTable
       Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ChunkTable
         - Statement:
             - Action:
                 - ssm:GetParameter

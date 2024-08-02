@@ -8,6 +8,8 @@ from ai.model_providers.openai import OpenAIProvider
 ssm = boto3.client("ssm")
 openai_key_name = "/examgpt/OPENAI_API_KEY"
 
+ddb = boto3.resource("dynamodb")
+
 
 def get_parameter(parameter_name: str, with_decryption: bool = True):
     try:
@@ -28,6 +30,11 @@ def handler(event: dict[str, Any], context: Any):
     print(message)
     # print(f"{event}")
 
+    chunk_table = os.environ["CHUNK_TABLE"]
+    if not chunk_table:
+        print("Error: Could not find chunk table in environment variables")
+    print(f"{chunk_table=}")
+
     key = get_parameter(parameter_name=openai_key_name)
     keyname = openai_key_name.split("/")[-1]
     if not key:
@@ -39,25 +46,25 @@ def handler(event: dict[str, Any], context: Any):
     chunk = event["Records"][0]["Sns"]["Message"]
     print(f"{chunk=}")
 
-    model = OpenAIProvider()
-    chat = model.get_chat_model()
+    # model = OpenAIProvider()
+    # chat = model.get_chat_model()
 
-    messages = [
-        (
-            "system",
-            "You are a helpful assistant that summarizes paragraphs",
-        ),
-        ("human", chunk),
-    ]
+    # messages = [
+    #     (
+    #         "system",
+    #         "You are a helpful assistant that summarizes paragraphs",
+    #     ),
+    #     ("human", chunk),
+    # ]
 
-    response = chat.invoke(messages)
-    print(response.content)
+    # response = chat.invoke(messages)
+    # print(response.content)
 
     return {
         "statusCode": 200,
         "body": json.dumps(
             {
-                "message": response.content,
+                "message": "OK",
             }
         ),
     }
