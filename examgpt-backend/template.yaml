@@ -58,8 +58,8 @@ Resources:
     Type: AWS::DynamoDB::Table
     Properties:
       ProvisionedThroughput:
-        ReadCapacityUnits: 2
-        WriteCapacityUnits: 2
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
       KeySchema:
         - AttributeName: exam_id
           KeyType: HASH
@@ -96,8 +96,8 @@ Resources:
           Projection:
             ProjectionType: ALL
           ProvisionedThroughput:
-            ReadCapacityUnits: 1
-            WriteCapacityUnits: 1
+            ReadCapacityUnits: 2
+            WriteCapacityUnits: 2
 
   # Rest APIs
   ExamGPTRestApi:

@@ -3,7 +3,8 @@ import os
 from typing import Any
 
 import boto3
-from ai.model_providers.openai import OpenAIProvider
+
+# from ai.model_providers.openai import OpenAIProvider
 
 ssm = boto3.client("ssm")
 openai_key_name = "/examgpt/OPENAI_API_KEY"

@@ -9,6 +9,6 @@ aws s3 rm s3://$bucket_name --recursive
 tables=$(aws dynamodb list-tables --query "TableNames[]" --output text)
 
 for table in $tables; do
-  aws dynamodb delete-table --table-name $table --return-values NONE
+  aws dynamodb delete-table --table-name $table
   echo "Deleted table ${table}"
 done

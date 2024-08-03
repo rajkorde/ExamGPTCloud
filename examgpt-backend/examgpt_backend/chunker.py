@@ -10,6 +10,7 @@ from pydantic import ValidationError
 s3 = boto3.client("s3")
 sns = boto3.client("sns")
 ddb = boto3.resource("dynamodb")
+CHUNK_BATCH_SIZE = 10
 
 
 def read_pdf_from_s3(bucket_name: str, object_key: str):
@@ -44,7 +45,7 @@ def save_chunk(chunk: TextChunk, table_name: str):
 def handler(event: dict[str, Any], context: Any):
     chunk_table = os.environ["CHUNK_TABLE"]
     if not chunk_table:
-        print("Error: Could not find exam table in environment variables")
+        print("Error: Could not find chunk table in environment variables")
 
     message = "In Chunking code"
     print(f"{event=}")
@@ -63,19 +64,18 @@ def handler(event: dict[str, Any], context: Any):
 
     pages = read_pdf_from_s3(bucket_name, object_key)
 
+    chunk_ids = []
     for i, page in enumerate(pages):
         chunk = TextChunk(exam_id=exam_id, text=page.page_content, page_number=i)
+        chunk_ids.append(chunk.chunk_id)
         save_chunk(chunk, chunk_table)
-
-    chunk = pages[65].page_content
-    print(chunk)
 
     topic_name = os.environ["CHUNK_TOPIC"]
     print(topic_name)
 
     sns.publish(
         TopicArn=topic_name,
-        Message=json.dumps({"default": chunk}),
+        Message=json.dumps({"default": str(chunk_ids[:CHUNK_BATCH_SIZE])}),
         MessageStructure="json",
     )
 
