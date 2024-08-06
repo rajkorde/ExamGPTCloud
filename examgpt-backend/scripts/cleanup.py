@@ -1,5 +1,3 @@
-import sys
-
 import boto3
 from tqdm import tqdm
 
@@ -16,7 +14,7 @@ def delete_s3_bucket_contents(bucket_name: str):
     # Scan the table and delete all items
 
 
-def delete_dynamodb_table_items(table_name):
+def delete_dynamodb_table_items(table_name: str):
     dynamodb = boto3.resource("dynamodb")
     table = dynamodb.Table(table_name)
 

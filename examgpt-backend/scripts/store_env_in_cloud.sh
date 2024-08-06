@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# DEPRECATED: use store_env_in_cloud.py instead!
+echo "DEPRECATED: use store_env_in_cloud.py instead!"
+
 ENV_FILE="examgpt_backend/.env"
 PROJECT_NAME="examgpt"
 AWS_REGION=$(aws configure get region)

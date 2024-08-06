@@ -1,6 +1,7 @@
 #! /bin/bash
 
-# DEPRECATED: use cleanup.py instead
+# DEPRECATED: use cleanup.py instead!
+echo "DEPRECATED: use cleanup.py instead!"
 
 # Delete all objects in bucket
 bucket_name=$(aws s3 ls | grep "examgpt"| awk '{print $3}')
