@@ -7,7 +7,8 @@ Description: |
 Globals:
   Function:
     Runtime: python3.12
-    Timeout: 300
+    EventInvokeConfig:
+      MaximumRetryAttempts: 1
     Environment:
       Variables:
         EXAM_TABLE: !Ref ExamTable
@@ -115,6 +116,8 @@ Resources:
       CodeUri: examgpt_backend/
       Handler: upload.handler
       MemorySize: 128
+      Timeout: 300
+      MaximumRetryAttempts: 1
       Environment:
         Variables:
           CONTENT_BUCKET: !Ref ContentBucket
@@ -137,6 +140,7 @@ Resources:
       CodeUri: examgpt_backend/
       Handler: chunker.handler
       MemorySize: 512
+      Timeout: 600
       Environment:
         Variables:
           CHUNK_TOPIC: !Ref ChunkTopic
@@ -159,6 +163,8 @@ Resources:
     Properties:
       CodeUri: examgpt_backend/
       Handler: generate.handler
+      MemorySize: 128
+      Timeout: 600
       Environment:
         Variables:
           CHUNK_TABLE: !Ref ChunkTable
