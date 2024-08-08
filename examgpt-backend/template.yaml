@@ -186,7 +186,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: examgpt_backend/
-      Handler: sandbox.handler
+      Handler: entry_points.sandbox.handler
       Events:
         APIEvent:
           Type: Api
