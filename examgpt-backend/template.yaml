@@ -13,7 +13,6 @@ Globals:
       Variables:
         EXAM_TABLE: !Ref ExamTable
 
-# TODO: enable cloudwatch logs and metrics to expire after 3 days
 Resources:
   # S3 Buckets
   ContentBucket:
@@ -211,15 +210,3 @@ Outputs:
   ExamGPTRestApi:
     Description: API Gateway endpoint for uploading files
     Value: !Sub https://${ExamGPTRestApi}.execute-api.${AWS::Region}.amazonaws.com/Stage
-  # UploadFunction:
-  #   Description: "Function that uploads file"
-  #   Value: !GetAtt UploadFunction.Arn
-  # ChunkerFunction:
-  #   Description: "Function that chunks uploaded file"
-  #   Value: !GetAtt ChunkerFunction.Arn
-  # SandboxFunction:
-  #   Description: "Sandbox Lambda for testing resources"
-  #   Value: !GetAtt SandboxFunction.Arn
-  # S3Bucket:
-  #   Description: "Bucket where uploaded files are stored"
-  #   Value: !GetAtt ContentBucket.Arn
