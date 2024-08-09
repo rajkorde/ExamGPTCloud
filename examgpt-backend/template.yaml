@@ -113,7 +113,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: examgpt_backend/
-      Handler: upload.handler
+      Handler: entry_points.upload.handler
       MemorySize: 128
       Timeout: 300
       Environment:
@@ -136,7 +136,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: examgpt_backend/
-      Handler: chunker.handler
+      Handler: entry_points.chunker.handler
       MemorySize: 512
       Timeout: 600
       Environment:
@@ -160,7 +160,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: examgpt_backend/
-      Handler: generate.handler
+      Handler: entry_points.generate.handler
       MemorySize: 128
       Timeout: 600
       Environment:
