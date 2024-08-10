@@ -13,8 +13,9 @@ class ApplicationLogger:
     def configure_logging(self, level: str):
         logger.remove()
         logger.add(
-            sys.stderr,
+            sys.stdout,
             format="<level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
+            level=level.upper(),
         )
 
     def get_logger(self):

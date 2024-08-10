@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 from typing import Any, Optional
 
@@ -11,11 +10,10 @@ from domain.model.utils.logging import app_logger
 from entrypoints.helpers.utils import get_env_var, get_error
 from pydantic import ValidationError
 
-logger = app_logger.get_logger()
-
 s3 = boto3.client("s3")
 ddb = boto3.resource("dynamodb")
-logger = logging.getLogger(__name__)
+
+logger = app_logger.get_logger()
 
 
 # def create_presigned_url(
@@ -71,6 +69,9 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
 
     if not (exam_table := get_env_var("EXAM_TABLE")):
         return get_error("Environment Variable EXAM_TABLE not set correctly.")
+
+    # print(f"Content Bucket: {bucket_name}")
+    # print(f"Exam Table: {exam_table}")
 
     logger.info(f"Content Bucket: {bucket_name}")
     logger.info(f"Exam Table: {exam_table}")

@@ -116,7 +116,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: examgpt_backend/
-      Handler: entrypoints.create_exam.handler
+      Handler: entrypoints.api.create_exam.handler
       MemorySize: 128
       Timeout: 300
       Environment:
@@ -139,7 +139,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: examgpt_backend/
-      Handler: entrypoints.chunker.handler
+      Handler: entrypoints.api.chunker.handler
       MemorySize: 512
       Timeout: 600
       Environment:
@@ -163,7 +163,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: examgpt_backend/
-      Handler: entrypoints.generate.handler
+      Handler: entrypoints.api.generate.handler
       MemorySize: 128
       Timeout: 600
       Environment:
@@ -189,7 +189,7 @@ Resources:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: examgpt_backend/
-      Handler: entrypoints.sandbox.handler
+      Handler: entrypoints.api.sandbox.handler
       Events:
         APIEvent:
           Type: Api
