@@ -2,7 +2,10 @@ AWSTemplateFormatVersion: "2010-09-09"
 Transform: AWS::Serverless-2016-10-31
 Description: |
   examgpt-backend
-  Backend for examgpt.  * API gateway, Lambda and S3 used for uploading study material * DynamoDB, Lambda, SNS used for storing examgpt data * API Gateway, Lambda used for for telegram bot
+  Backend for examgpt.  
+  * API gateway, Lambda and S3 used for creating exam once file is uploaded to S3 by client 
+  * DynamoDB, Lambda, SNS used for storing examgpt data 
+  * API Gateway, Lambda used for for telegram bot
 
 Globals:
   Function:
@@ -109,11 +112,11 @@ Resources:
       StageName: Prod
 
   # Lambda Functions
-  UploadFunction:
+  CreateExamFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: examgpt_backend/
-      Handler: entrypoints.upload.handler
+      Handler: entrypoints.create_exam.handler
       MemorySize: 128
       Timeout: 300
       Environment:
@@ -128,7 +131,7 @@ Resources:
         APIEvent:
           Type: Api
           Properties:
-            Path: /upload
+            Path: /create_exam
             Method: POST
             RestApiId: !Ref ExamGPTRestApi
 
@@ -208,5 +211,5 @@ Resources:
 
 Outputs:
   ExamGPTRestApi:
-    Description: API Gateway endpoint for uploading files
+    Description: API Gateway endpoint for create_exam
     Value: !Sub https://${ExamGPTRestApi}.execute-api.${AWS::Region}.amazonaws.com/Stage
