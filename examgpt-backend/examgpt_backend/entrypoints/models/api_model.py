@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 from typing import Any, Optional
 
@@ -16,14 +18,13 @@ class CreateExamRequest(BaseModel):
 
     @staticmethod
     def _handle_error(event: dict[str, Any]):
-        message = "Invalid body specifiction in event: {event}"
-        logger.error(message)
+        logger.error("Invalid body specifiction in event: {event}")
         return None
 
     @staticmethod
     def parse_event(
         event: dict[str, Any],
-    ) -> tuple[str, list[str], Optional[str]] | None:
+    ) -> CreateExamRequest | None:
         body_str = event.get("body")
         if not body_str:
             return CreateExamRequest._handle_error(event)
@@ -33,11 +34,10 @@ class CreateExamRequest(BaseModel):
         if not exam_name:
             return CreateExamRequest._handle_error(event)
         filenames = body.get("filenames")
-        if not filename:
+        if not filenames:
             return CreateExamRequest._handle_error(event)
-
         exam_code = body.get("exam_code")
-        if not exam_code:
-            return exam_name, filename, None
-        else:
-            return exam_name, filename, exam_code
+
+        return CreateExamRequest(
+            exam_name=exam_name, filenames=filenames, exam_code=exam_code
+        )

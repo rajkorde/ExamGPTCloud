@@ -40,11 +40,10 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     logger.info(f"Content Bucket: {bucket_name}")
     logger.info(f"Exam Table: {exam_table}")
 
-    parsed_event = CreateExamRequest.parse_event(event)
-    if not parsed_event:
+    exam_request = CreateExamRequest.parse_event(event)
+    if not exam_request:
         return get_error("Malformed request.")
 
-    exam_request = CreateExamRequest(*parsed_event)
     logger.info(f"{exam_request=}")
 
     # filename, exam_name = parse_event(event)
