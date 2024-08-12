@@ -4,8 +4,7 @@ from typing import Any, Optional
 
 import boto3
 from botocore.exceptions import ClientError
-
-# from domain.model.core.exam import Exam
+from domain.model.core.exam import Exam
 from domain.model.utils.logging import app_logger
 from entrypoints.helpers.utils import get_env_var, get_error
 from entrypoints.models.api_model import CreateExamRequest
@@ -26,16 +25,11 @@ logger = app_logger.get_logger()
 
 
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
-    print(event)
-
     if not (bucket_name := get_env_var("CONTENT_BUCKET")):
         return get_error("Environment Variable CONTENT_BUCKET not set correctly.")
 
     if not (exam_table := get_env_var("EXAM_TABLE")):
         return get_error("Environment Variable EXAM_TABLE not set correctly.")
-
-    # print(f"Content Bucket: {bucket_name}")
-    # print(f"Exam Table: {exam_table}")
 
     logger.info(f"Content Bucket: {bucket_name}")
     logger.info(f"Exam Table: {exam_table}")
@@ -46,12 +40,20 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
 
     logger.info(f"{exam_request=}")
 
-    # filename, exam_name = parse_event(event)
-    # if not filename or not exam_name:
-    #     return get_error()
-    # print(f"Received request for uploading file: {filename}")
+    exam = (
+        Exam(
+            name=exam_request.exam_name,
+            sources=exam_request.filenames,
+            exam_code=exam_request.exam_code,
+        )
+        if exam_request.exam_code
+        else Exam(
+            name=exam_request.exam_name,
+            sources=exam_request.filenames,
+        )
+    )
 
-    # exam = Exam(name=exam_name)
+    logger.info("exam = " + str(exam))
 
     # filename = f"{exam.exam_id}/sources/{os.path.basename(filename)}"
     # exam.sources.append(filename)
