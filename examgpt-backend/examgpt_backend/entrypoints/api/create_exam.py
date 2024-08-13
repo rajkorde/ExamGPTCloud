@@ -7,13 +7,15 @@ import boto3
 
 # from botocore.exceptions import ClientError
 from domain.command_handlers.content_commands_handler import create_upload_urls
+from domain.command_handlers.exam_commands_handler import save_exam
 from domain.commands.content_commands import CreateUploadURLs
+from domain.commands.exam_commands import SaveExam
 from domain.model.core.exam import Exam
 from domain.model.utils.logging import app_logger
 from domain.model.utils.misc import ErrorMessage, get_env_var
 
 # from domain.ports.content_service import ContentService
-from entrypoints.helpers.utils import get_content_service, get_error
+from entrypoints.helpers.utils import get_content_service, get_error, get_exam_service
 from entrypoints.models.api_model import CreateExamRequest
 
 # from pydantic import ValidationError
@@ -75,7 +77,15 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     if isinstance(signed_urls, ErrorMessage):
         return get_error("Could not get upload urls")
 
-    # save_exam(exam, exam_table)
+    logger.info("Saving Exam to DB")
+    exam_service = get_exam_service()
+    if not exam_service:
+        return get_error(
+            "Could not retrieve the correct exam service. Is the environment variable LOCATION set correctly?"
+        )
+    response = save_exam(SaveExam(exam=exam), exam_service)
+    if not response:
+        return get_error(f"Could not save Exam: {exam.exam_code}")
 
     return {
         "statusCode": 200,
