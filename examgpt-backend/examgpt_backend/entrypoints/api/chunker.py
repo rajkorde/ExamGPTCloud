@@ -3,7 +3,7 @@ import os
 from typing import Any
 
 import boto3
-from core.chunk import TextChunk
+from domain.model.core.chunk import TextChunk
 from langchain_community.document_loaders import PyMuPDFLoader
 from pydantic import ValidationError
 

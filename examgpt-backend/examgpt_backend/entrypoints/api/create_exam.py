@@ -1,14 +1,22 @@
 import json
 import os
-from typing import Any, Optional
+from dataclasses import asdict
+from typing import Any
 
 import boto3
-from botocore.exceptions import ClientError
+
+# from botocore.exceptions import ClientError
+from domain.command_handlers.content_commands_handler import create_upload_urls
+from domain.commands.content_commands import CreateUploadURLs
 from domain.model.core.exam import Exam
 from domain.model.utils.logging import app_logger
-from entrypoints.helpers.utils import get_env_var, get_error
+from domain.model.utils.misc import ErrorMessage, get_env_var
+
+# from domain.ports.content_service import ContentService
+from entrypoints.helpers.utils import get_content_service, get_error
 from entrypoints.models.api_model import CreateExamRequest
-from pydantic import ValidationError
+
+# from pydantic import ValidationError
 
 s3 = boto3.client("s3")
 ddb = boto3.resource("dynamodb")
@@ -25,13 +33,9 @@ logger = app_logger.get_logger()
 
 
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
-    if not (bucket_name := get_env_var("CONTENT_BUCKET")):
-        return get_error("Environment Variable CONTENT_BUCKET not set correctly.")
-
     if not (exam_table := get_env_var("EXAM_TABLE")):
         return get_error("Environment Variable EXAM_TABLE not set correctly.")
 
-    logger.info(f"Content Bucket: {bucket_name}")
     logger.info(f"Exam Table: {exam_table}")
 
     exam_request = CreateExamRequest.parse_event(event)
@@ -43,33 +47,43 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     exam = (
         Exam(
             name=exam_request.exam_name,
-            sources=exam_request.filenames,
             exam_code=exam_request.exam_code,
         )
         if exam_request.exam_code
         else Exam(
             name=exam_request.exam_name,
-            sources=exam_request.filenames,
         )
     )
 
     logger.info("exam = " + str(exam))
 
-    # filename = f"{exam.exam_id}/sources/{os.path.basename(filename)}"
-    # exam.sources.append(filename)
-    # print(f"Updated filename: {filename}")
+    for filename in exam_request.filenames:
+        filename = f"{exam.exam_code}/sources/{os.path.basename(filename)}"
+        exam.sources.append(filename)
+        logger.info(f"Updated filename: {filename}")
 
-    # signed_url = create_presigned_url(bucket_name, object_name=filename)
-    # if not signed_url:
-    #     message = "Could not generate pre-signed URL"
-    #     logger.error(message)
-    #     return get_error(message)
+    content_service = get_content_service()
+    if not content_service:
+        return get_error(
+            "Could not retrieve the correct content service. Is the environment variable LOCATION set correctly?"
+        )
+    signed_urls = create_upload_urls(
+        CreateUploadURLs(sources=exam.sources), content_service
+    )
 
-    # print("Generated presigned URL.")
+    logger.info(f"{signed_urls=}")
+
+    if isinstance(signed_urls, ErrorMessage):
+        return get_error("Could not get upload urls")
+
     # save_exam(exam, exam_table)
 
     return {
         "statusCode": 200,
-        # "body": json.dumps({"url": signed_url, "exam_id": exam.exam_id}),
-        "body": "ok",
+        "body": json.dumps(
+            {
+                "urls": [asdict(signed_url) for signed_url in signed_urls],
+                "exam_code": exam.exam_code,
+            }
+        ),
     }

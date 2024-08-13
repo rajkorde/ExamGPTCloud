@@ -15,6 +15,7 @@ Globals:
     Environment:
       Variables:
         EXAM_TABLE: !Ref ExamTable
+        LOCATION: AWS
 
 Resources:
   # S3 Buckets

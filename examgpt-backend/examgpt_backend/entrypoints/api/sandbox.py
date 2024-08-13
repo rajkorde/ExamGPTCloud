@@ -1,7 +1,7 @@
 import json
 from typing import Any
 
-from ai.constants import ModelFamily
+from domain.ai.constants import ModelFamily
 
 
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
