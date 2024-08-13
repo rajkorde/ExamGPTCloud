@@ -18,7 +18,6 @@ from entrypoints.models.api_model import CreateExamRequest
 
 # from pydantic import ValidationError
 
-s3 = boto3.client("s3")
 ddb = boto3.resource("dynamodb")
 
 logger = app_logger.get_logger()

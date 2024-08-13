@@ -68,10 +68,10 @@ Resources:
         ReadCapacityUnits: 1
         WriteCapacityUnits: 1
       KeySchema:
-        - AttributeName: exam_id
+        - AttributeName: exam_code
           KeyType: HASH
       AttributeDefinitions:
-        - AttributeName: exam_id
+        - AttributeName: exam_code
           AttributeType: S
       TableName: !Sub ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-exam
 

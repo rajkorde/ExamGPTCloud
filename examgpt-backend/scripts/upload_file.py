@@ -18,7 +18,7 @@ def get_api_url():
         logger.warning(f"{apis["items"]} API endpoints found. Using the first one.")
     api = apis["items"][0]
 
-    return f"https://{api['id']}.execute-api.{region}.amazonaws.com/{stage}/upload"
+    return f"https://{api['id']}.execute-api.{region}.amazonaws.com/{stage}/create_exam"
 
 
 def get_presigned_url(api_url: str, file_path: str):

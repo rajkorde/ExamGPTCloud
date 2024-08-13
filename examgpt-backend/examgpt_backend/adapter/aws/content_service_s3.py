@@ -8,7 +8,7 @@ from domain.model.utils.misc import ErrorMessage, get_env_var
 from domain.ports.content_service import ContentService
 
 s3 = boto3.client("s3")
-CONTENT_ENV_VAR: str = "CONTENT_BUCKET"
+CONTENT_BUCKET_ENV_VAR: str = "CONTENT_BUCKET"
 logger = app_logger.get_logger()
 
 
@@ -22,9 +22,9 @@ class ContentServiceS3(ContentService):
     def create_upload_url(
         self, filename: str, expires_in: int = 3600
     ) -> PreSignedUrl | ErrorMessage:
-        if not (bucket_name := get_env_var(CONTENT_ENV_VAR)):
+        if not (bucket_name := get_env_var(CONTENT_BUCKET_ENV_VAR)):
             return ErrorMessage(
-                f"Environment Variable {CONTENT_ENV_VAR} not set correctly."
+                f"Environment Variable {CONTENT_BUCKET_ENV_VAR} not set correctly."
             )
         try:
             response = s3.generate_presigned_post(

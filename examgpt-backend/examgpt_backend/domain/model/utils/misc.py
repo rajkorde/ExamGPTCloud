@@ -14,7 +14,7 @@ class ErrorMessage:
 
 
 def get_env_var(name: str) -> Optional[str]:
-    value = os.environ[name]
+    value = os.getenv(name)
     if not value:
         logger.error(f"Could not find environment variable: {name}")
         return None
