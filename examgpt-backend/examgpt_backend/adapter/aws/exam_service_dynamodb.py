@@ -3,6 +3,7 @@ from typing import Optional
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 from domain.model.core.exam import Exam, ExamState
+from domain.model.utils.exceptions import InvalidEnvironmentSetup
 from domain.model.utils.logging import app_logger
 from domain.model.utils.misc import get_env_var
 from domain.ports.exam_service import ExamService
@@ -15,15 +16,13 @@ class ExamServiceDynamoDB(ExamService):
     def __init__(self):
         table_name = get_env_var(EXAM_TABLE_ENV_VAR)
         if not table_name:
-            raise RuntimeError(
-                f"Environment Variable {EXAM_TABLE_ENV_VAR} not set correctly."
-            )
+            raise InvalidEnvironmentSetup(EXAM_TABLE_ENV_VAR)
         self.ddb = boto3.resource("dynamodb")
         self.table = self.ddb.Table(table_name)
 
     def put_exam(self, exam: Exam) -> bool:
         item = exam.model_dump()
-        item["state"] = item["state"].value
+        item["state"] = ExamState.SAVED.value
 
         try:
             self.table.put_item(

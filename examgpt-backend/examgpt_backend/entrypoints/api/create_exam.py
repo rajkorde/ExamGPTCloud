@@ -1,86 +1,44 @@
 import json
-import os
 from dataclasses import asdict
 from typing import Any
 
-import boto3
-
-# from botocore.exceptions import ClientError
 from domain.command_handlers.content_commands_handler import create_upload_urls
 from domain.command_handlers.exam_commands_handler import save_exam
 from domain.commands.content_commands import CreateUploadURLs
 from domain.commands.exam_commands import SaveExam
-from domain.model.core.exam import Exam
 from domain.model.utils.logging import app_logger
-from domain.model.utils.misc import ErrorMessage, get_env_var
-
-# from domain.ports.content_service import ContentService
+from domain.ports.exam_service import ExamService
 from entrypoints.helpers.utils import CommandRegistry, get_error
 from entrypoints.models.api_model import CreateExamRequest
-
-# from pydantic import ValidationError
-
-ddb = boto3.resource("dynamodb")
 
 logger = app_logger.get_logger()
 
 
-# def save_exam(exam: Exam, table_name: str):
-#     table = ddb.Table(table_name)
-#     try:
-#         table.put_item(Item=exam.model_dump())
-#     except ValidationError as e:
-#         print(f"Validation error: {e}")
-
-
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     command_registry = CommandRegistry()
-
-    if not (exam_table := get_env_var("EXAM_TABLE")):
-        return get_error("Environment Variable EXAM_TABLE not set correctly.")
-
-    logger.info(f"Exam Table: {exam_table}")
+    content_service = command_registry.get_content_service()
+    exam_service = command_registry.get_exam_service()
 
     exam_request = CreateExamRequest.parse_event(event)
     if not exam_request:
-        return get_error("Malformed request.")
+        return get_error("Malformed request.", error_code=400)
 
-    logger.info(f"{exam_request=}")
-
-    exam = (
-        Exam(
-            name=exam_request.exam_name,
-            exam_code=exam_request.exam_code,
-        )
-        if exam_request.exam_code
-        else Exam(
-            name=exam_request.exam_name,
-        )
+    exam = ExamService.create_exam(
+        name=exam_request.exam_name,
+        filenames=exam_request.filenames,
+        exam_code=exam_request.exam_code,
     )
 
-    logger.info("exam = " + str(exam))
+    logger.debug("exam = " + str(exam))
 
-    for filename in exam_request.filenames:
-        filename = f"{exam.exam_code}/sources/{os.path.basename(filename)}"
-        exam.sources.append(filename)
-        logger.info(f"Updated filename: {filename}")
-
-    content_service = command_registry.get_content_service()
-    if not content_service:
-        return get_error(
-            "Could not retrieve the correct content service. Is the environment variable LOCATION set correctly?"
-        )
     signed_urls = create_upload_urls(
         CreateUploadURLs(sources=exam.sources), content_service
     )
 
-    logger.info(f"{signed_urls=}")
-
-    if isinstance(signed_urls, ErrorMessage):
-        return get_error("Could not get upload urls")
+    logger.debug(f"{signed_urls=}")
 
     logger.info("Saving Exam to DB")
-    exam_service = command_registry.get_exam_service()
+
     if not exam_service:
         return get_error(
             "Could not retrieve the correct exam service. Is the environment variable LOCATION set correctly?"

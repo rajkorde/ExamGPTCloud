@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 
 class ExamState(Enum):
     CREATED = "created"
+    SAVED = "saved"
     UPLOADED = "uploaded"
     CHUNKED = "chunked"
     QAGENERATED = "qa_generated"
