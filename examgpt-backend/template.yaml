@@ -86,25 +86,25 @@ Resources:
       KeySchema:
         - AttributeName: chunk_id
           KeyType: HASH
-        # - AttributeName: exam_id
-        #   KeyType: RANGE
+        - AttributeName: exam_id
+          KeyType: RANGE
       AttributeDefinitions:
         - AttributeName: chunk_id
           AttributeType: S
-      #   - AttributeName: exam_id
-      #     AttributeType: S
-      # GlobalSecondaryIndexes:
-      #   - IndexName: ExamIndex
-      #     KeySchema:
-      #       - AttributeName: exam_id
-      #         KeyType: HASH
-      #       - AttributeName: chunk_id
-      #         KeyType: RANGE
-      #     Projection:
-      #       ProjectionType: ALL
-      #     ProvisionedThroughput:
-      #       ReadCapacityUnits: 2
-      #       WriteCapacityUnits: 2
+        - AttributeName: exam_id
+          AttributeType: S
+      GlobalSecondaryIndexes:
+        - IndexName: ExamIndex
+          KeySchema:
+            - AttributeName: exam_id
+              KeyType: HASH
+            - AttributeName: chunk_id
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 2
+            WriteCapacityUnits: 2
 
   # Rest APIs
   ExamGPTRestApi:

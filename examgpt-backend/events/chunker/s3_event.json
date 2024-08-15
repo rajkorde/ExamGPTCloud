@@ -5,7 +5,7 @@
       "eventSource": "aws:s3",
       "awsRegion": "us-east-1",
       "eventTime": "1970-01-01T00:00:00.000Z",
-      "eventName": "ObjectCreated:Put",
+      "eventName": "ObjectCreated:Post",
       "userIdentity": {
         "principalId": "EXAMPLE"
       },
