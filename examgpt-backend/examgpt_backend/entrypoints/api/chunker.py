@@ -43,41 +43,44 @@ def save_chunk(chunk: TextChunk, table_name: str):
 
 
 def handler(event: dict[str, Any], context: Any):
-    chunk_table = os.environ["CHUNK_TABLE"]
-    if not chunk_table:
-        print("Error: Could not find chunk table in environment variables")
+    print(event)
 
     message = "In Chunking code"
-    print(f"{event=}")
-    print(f"{message=}")
+    # chunk_table = os.environ["CHUNK_TABLE"]
+    # if not chunk_table:
+    #     print("Error: Could not find chunk table in environment variables")
 
-    bucket_name, object_key = get_bucket_name(event)
-    print(f"{bucket_name}=")
-    print(f"{object_key}=")
+    # message = "In Chunking code"
+    # print(f"{event=}")
+    # print(f"{message=}")
 
-    folders = object_key.split("/")
-    if len(folders) != 3:
-        print(
-            f"Error: the object key does not have the right folder structure: {object_key}"
-        )
-    exam_id = folders[0]
+    # bucket_name, object_key = get_bucket_name(event)
+    # print(f"{bucket_name}=")
+    # print(f"{object_key}=")
 
-    pages = read_pdf_from_s3(bucket_name, object_key)
+    # folders = object_key.split("/")
+    # if len(folders) != 3:
+    #     print(
+    #         f"Error: the object key does not have the right folder structure: {object_key}"
+    #     )
+    # exam_id = folders[0]
 
-    chunk_ids = []
-    for i, page in enumerate(pages):
-        chunk = TextChunk(exam_id=exam_id, text=page.page_content, page_number=i)
-        chunk_ids.append(chunk.chunk_id)
-        save_chunk(chunk, chunk_table)
+    # pages = read_pdf_from_s3(bucket_name, object_key)
 
-    topic_name = os.environ["CHUNK_TOPIC"]
-    print(topic_name)
+    # chunk_ids = []
+    # for i, page in enumerate(pages):
+    #     chunk = TextChunk(exam_id=exam_id, text=page.page_content, page_number=i)
+    #     chunk_ids.append(chunk.chunk_id)
+    #     save_chunk(chunk, chunk_table)
 
-    sns.publish(
-        TopicArn=topic_name,
-        Message=json.dumps({"default": str(chunk_ids[:CHUNK_BATCH_SIZE])}),
-        MessageStructure="json",
-    )
+    # topic_name = os.environ["CHUNK_TOPIC"]
+    # print(topic_name)
+
+    # sns.publish(
+    #     TopicArn=topic_name,
+    #     Message=json.dumps({"default": str(chunk_ids[:CHUNK_BATCH_SIZE])}),
+    #     MessageStructure="json",
+    # )
 
     return {
         "statusCode": 200,

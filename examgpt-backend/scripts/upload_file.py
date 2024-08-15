@@ -7,8 +7,11 @@ from loguru import logger
 
 region = "us-west-2"
 stage = "Stage"
-file_path = "scripts/testdata/aws2.pdf"
-exam_name = "AWS Solution Architect Associate Certification Exam"
+
+payload = {
+    "exam_name": "AWS Solution Architect Associate Certification Exam",
+    "filenames": ["scripts/testdata/aws2.pdf"],
+}
 
 
 def get_api_url():

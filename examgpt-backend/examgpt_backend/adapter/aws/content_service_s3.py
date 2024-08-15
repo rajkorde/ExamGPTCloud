@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass
 from typing import Any
 
@@ -42,3 +43,12 @@ class ContentServiceS3(ContentService):
         api_url = response["url"]
         fields = response["fields"]
         return PreSignedUrl(api_url, fields)
+
+    def download_file(self, source: str, destination: str) -> str:
+        try:
+            self.s3.download_file(self.bucket_name, source, destination)
+            logger.debug(f"Filesize: {os.path.getsize(destination)}")
+        except ClientError as e:
+            logger.error(e)
+            raise e
+        return destination

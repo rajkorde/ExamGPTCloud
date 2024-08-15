@@ -2,7 +2,7 @@ from dataclasses import asdict, dataclass, field
 from typing import Any
 from uuid import uuid4
 
-from utils.misc import get_current_time
+from domain.model.utils.misc import get_current_time
 
 
 @dataclass
