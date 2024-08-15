@@ -15,7 +15,7 @@ from domain.model.utils.logging import app_logger
 from domain.model.utils.misc import ErrorMessage, get_env_var
 
 # from domain.ports.content_service import ContentService
-from entrypoints.helpers.utils import get_content_service, get_error, get_exam_service
+from entrypoints.helpers.utils import CommandRegistry, get_error
 from entrypoints.models.api_model import CreateExamRequest
 
 # from pydantic import ValidationError
@@ -34,6 +34,8 @@ logger = app_logger.get_logger()
 
 
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
+    command_registry = CommandRegistry()
+
     if not (exam_table := get_env_var("EXAM_TABLE")):
         return get_error("Environment Variable EXAM_TABLE not set correctly.")
 
@@ -63,7 +65,7 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
         exam.sources.append(filename)
         logger.info(f"Updated filename: {filename}")
 
-    content_service = get_content_service()
+    content_service = command_registry.get_content_service()
     if not content_service:
         return get_error(
             "Could not retrieve the correct content service. Is the environment variable LOCATION set correctly?"
@@ -78,7 +80,7 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
         return get_error("Could not get upload urls")
 
     logger.info("Saving Exam to DB")
-    exam_service = get_exam_service()
+    exam_service = command_registry.get_exam_service()
     if not exam_service:
         return get_error(
             "Could not retrieve the correct exam service. Is the environment variable LOCATION set correctly?"
