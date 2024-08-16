@@ -79,6 +79,8 @@ def handler(event: dict[str, Any], context: Any):
     logger.debug(f"Chunks size: {len(chunks)}")
     logger.debug(chunks[33].to_dict())
 
+    # ADD a way to clean and combine chunks!
+
     # Save chunks in batch
     # Publish chunk topic in batches
     # Update Exam state
