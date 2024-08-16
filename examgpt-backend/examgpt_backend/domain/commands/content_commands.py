@@ -1,3 +1,4 @@
+from typing import Optional
 from uuid import uuid4
 
 from pydantic import BaseModel, Field
@@ -9,4 +10,5 @@ class CreateUploadURLs(BaseModel):
 
 class DownloadFile(BaseModel):
     source: str
-    destination: str = Field(default_factory=lambda: str(f"/tmp/temp_{uuid4()}.pdf"))
+    destination: str = Field(default_factory=lambda: str(f"/tmp/{uuid4()}.pdf"))
+    bucket_name: Optional[str] = Field(default=None)

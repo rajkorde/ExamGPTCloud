@@ -3,9 +3,16 @@ import os
 from typing import Any
 
 import boto3
+from domain.command_handlers.content_commands_handler import download_file
+from domain.commands.content_commands import DownloadFile
 from domain.model.core.chunk import TextChunk
+from domain.model.utils.logging import app_logger
+from entrypoints.helpers.utils import CommandRegistry, get_error
+from entrypoints.models.api_model import ChunkerRequest
 from langchain_community.document_loaders import PyMuPDFLoader
 from pydantic import ValidationError
+
+logger = app_logger.get_logger()
 
 s3 = boto3.client("s3")
 sns = boto3.client("sns")
@@ -46,6 +53,29 @@ def handler(event: dict[str, Any], context: Any):
     print(event)
 
     message = "In Chunking code"
+    command_registry = CommandRegistry()
+    content_service = command_registry.get_content_service()
+    # exam_service = command_registry.get_exam_service()
+
+    # Download File
+    chunker_request = ChunkerRequest.parse_event(event)
+    if not chunker_request:
+        print("Error: Could not parse event")
+        return get_error("Malformed S3 event", error_code=400)
+
+    downloaded_file = download_file(
+        command=DownloadFile(
+            source=chunker_request.location, bucket_name=chunker_request.bucket_name
+        ),
+        content_service=content_service,
+    )
+    logger.debug(f"{downloaded_file=}")
+
+    # Chunk file
+    # Save chunks in batch
+    # Publish chunk topic in batches
+    # Update Exam state
+
     # chunk_table = os.environ["CHUNK_TABLE"]
     # if not chunk_table:
     #     print("Error: Could not find chunk table in environment variables")

@@ -1,6 +1,6 @@
 import os
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Optional
 
 import boto3
 from botocore.exceptions import ClientError
@@ -22,15 +22,13 @@ class PreSignedUrl:
 
 class ContentServiceS3(ContentService):
     def __init__(self):
-        self.bucket_name = get_env_var(CONTENT_BUCKET_ENV_VAR)
-        if not self.bucket_name:
-            raise InvalidEnvironmentSetup(CONTENT_BUCKET_ENV_VAR)
         self.s3 = boto3.client("s3")
 
     def create_upload_url(self, filename: str, expires_in: int = 3600) -> PreSignedUrl:
+        bucket_name = get_env_var(CONTENT_BUCKET_ENV_VAR)
         try:
             response = s3.generate_presigned_post(
-                self.bucket_name,
+                bucket_name,
                 filename,
                 Fields=None,
                 Conditions=None,
@@ -44,9 +42,14 @@ class ContentServiceS3(ContentService):
         fields = response["fields"]
         return PreSignedUrl(api_url, fields)
 
-    def download_file(self, source: str, destination: str) -> str:
+    def download_file(
+        self, source: str, destination: str, bucket_name: Optional[str] = None
+    ) -> str:
         try:
-            self.s3.download_file(self.bucket_name, source, destination)
+            if not bucket_name:
+                logger.error("No bucket name provided in an S3 event request")
+                raise InvalidEnvironmentSetup(CONTENT_BUCKET_ENV_VAR)
+            self.s3.download_file(bucket_name, source, destination)
             logger.debug(f"Filesize: {os.path.getsize(destination)}")
         except ClientError as e:
             logger.error(e)

@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Optional
 
 
 class ContentService(ABC):
@@ -7,4 +7,6 @@ class ContentService(ABC):
     def create_upload_url(self, filename: str, expires_in: int = 3600) -> Any: ...
 
     @abstractmethod
-    def download_file(self, source: str, destination: str) -> Any: ...
+    def download_file(
+        self, source: str, destination: str, bucket_name: Optional[str] = None
+    ) -> str: ...

@@ -20,6 +20,8 @@ def create_upload_urls(
 
 def download_file(command: DownloadFile, content_service: ContentService) -> str:
     path = content_service.download_file(
-        source=command.source, destination=command.destination
+        source=command.source,
+        destination=command.destination,
+        bucket_name=command.bucket_name,
     )
     return path

@@ -38,11 +38,6 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     logger.debug(f"{signed_urls=}")
 
     logger.info("Saving Exam to DB")
-
-    if not exam_service:
-        return get_error(
-            "Could not retrieve the correct exam service. Is the environment variable LOCATION set correctly?"
-        )
     response = save_exam(SaveExam(exam=exam), exam_service)
     if not response:
         return get_error(f"Could not save Exam: {exam.exam_code}")
