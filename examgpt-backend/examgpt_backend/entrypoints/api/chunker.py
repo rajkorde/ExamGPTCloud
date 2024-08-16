@@ -3,6 +3,7 @@ import os
 from typing import Any
 
 import boto3
+from domain.chunker.pdf_chunker import SimplePDFChunker
 from domain.command_handlers.content_commands_handler import download_file
 from domain.commands.content_commands import DownloadFile
 from domain.model.core.chunk import TextChunk
@@ -62,6 +63,7 @@ def handler(event: dict[str, Any], context: Any):
     if not chunker_request:
         print("Error: Could not parse event")
         return get_error("Malformed S3 event", error_code=400)
+    exam_code = chunker_request.exam_code
 
     downloaded_file = download_file(
         command=DownloadFile(
@@ -72,6 +74,11 @@ def handler(event: dict[str, Any], context: Any):
     logger.debug(f"{downloaded_file=}")
 
     # Chunk file
+    chunker = SimplePDFChunker()
+    chunks = chunker.chunk(location=downloaded_file, exam_code=exam_code)
+    logger.debug(f"Chunks size: {len(chunks)}")
+    logger.debug(chunks[33].to_dict())
+
     # Save chunks in batch
     # Publish chunk topic in batches
     # Update Exam state

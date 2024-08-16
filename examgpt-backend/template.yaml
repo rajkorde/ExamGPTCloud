@@ -86,17 +86,17 @@ Resources:
       KeySchema:
         - AttributeName: chunk_id
           KeyType: HASH
-        - AttributeName: exam_id
+        - AttributeName: exam_code
           KeyType: RANGE
       AttributeDefinitions:
         - AttributeName: chunk_id
           AttributeType: S
-        - AttributeName: exam_id
+        - AttributeName: exam_code
           AttributeType: S
       GlobalSecondaryIndexes:
         - IndexName: ExamIndex
           KeySchema:
-            - AttributeName: exam_id
+            - AttributeName: exam_code
               KeyType: HASH
             - AttributeName: chunk_id
               KeyType: RANGE
