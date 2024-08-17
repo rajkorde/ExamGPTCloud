@@ -10,6 +10,8 @@ const Form = () => {
   const [examCode, setExamCode] = useState("");
   const [message, setMessage] = useState("");
   const [fontClass, setFontClass] = useState("text-dark");
+  const [apiUrl, setApiUrl] = useState('');
+  const [fields, setFields] = useState({});
 
   const handleSubmit = async (event) => {
     setMessage("")
@@ -38,14 +40,6 @@ const Form = () => {
       ...(examCode != null && { exam_code: examCode })
     });
 
-    // const formData = new FormData();
-    // formData.append('exam_name', examName);
-    // // formData.append('email', email);
-    // formData.append('filenames', JSON.stringify([filename]));
-    // if (examCode) {
-    //   formData.append('examCode', examCode);
-    // }
-
     try {
       const response = await fetch(
         "https://hftc3imu3d.execute-api.us-west-2.amazonaws.com/Stage/create_exam", {
@@ -57,8 +51,24 @@ const Form = () => {
         mode: "cors"
       });
 
-      console.log(response)
       if (response.ok) {
+        try {
+          const data = await response.json();
+          const examCode = data.exam_code;
+          setExamCode(examCode);
+          console.log("Exam code: ", examCode);
+
+          const apiUrl = data.urls[0].api_url;
+          const fields = data.urls[0].fields;
+          setApiUrl(apiUrl);
+          setFields(fields);
+          console.log("API URL: ", apiUrl, "Fields: ", fields);
+
+        } catch (error) {
+          console.log("Error submitting form: ", error);
+          setMessage("Form submission failed");
+          setFontClass("text-danger");
+        }
         setMessage("Exam created successfully");
         setFontClass("text-success");
       } else {
