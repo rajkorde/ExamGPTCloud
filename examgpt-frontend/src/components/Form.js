@@ -11,7 +11,7 @@ const Form = () => {
   const [message, setMessage] = useState("");
   const [fontClass, setFontClass] = useState("text-dark");
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     setMessage("")
     setFontClass("text-dark");
     if (!examName) {
@@ -32,6 +32,44 @@ const Form = () => {
 
     console.log(examName, email, filename, examCode)
 
+    const requestBody = JSON.stringify({
+      exam_name: examName,
+      filenames: [filename],
+      ...(examCode != null && { exam_code: examCode })
+    });
+
+    // const formData = new FormData();
+    // formData.append('exam_name', examName);
+    // // formData.append('email', email);
+    // formData.append('filenames', JSON.stringify([filename]));
+    // if (examCode) {
+    //   formData.append('examCode', examCode);
+    // }
+
+    try {
+      const response = await fetch(
+        "https://hftc3imu3d.execute-api.us-west-2.amazonaws.com/Stage/create_exam", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: requestBody,
+        mode: "cors"
+      });
+
+      console.log(response)
+      if (response.ok) {
+        setMessage("Exam created successfully");
+        setFontClass("text-success");
+      } else {
+        setMessage("Form submission failed");
+        setFontClass("text-danger");
+      }
+    } catch (error) {
+      console.log("Error submitting form: ", error);
+      setMessage("Form submission failed");
+      setFontClass("text-danger");
+    }
   }
 
   return (

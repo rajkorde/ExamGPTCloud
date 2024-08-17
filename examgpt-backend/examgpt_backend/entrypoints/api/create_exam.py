@@ -19,6 +19,8 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     content_service = command_registry.get_content_service()
     exam_service = command_registry.get_exam_service()
 
+    logger.info(event)
+
     exam_request = CreateExamRequest.parse_event(event)
     if not exam_request:
         return get_error("Malformed request.", error_code=400)
@@ -44,6 +46,11 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
 
     return {
         "statusCode": 200,
+        "headers": {
+            "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
+            "Access-Control-Allow-Origin": "*",
+            "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+        },
         "body": json.dumps(
             {
                 "urls": [asdict(signed_url) for signed_url in signed_urls],
