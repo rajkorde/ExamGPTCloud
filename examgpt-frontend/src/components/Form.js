@@ -13,9 +13,39 @@ const Form = () => {
   const [apiUrl, setApiUrl] = useState('');
   const [fields, setFields] = useState({});
 
+  const uploadFileToS3 = async (apiUrl, fields) => {
+    console.log("In upload, apiUrl: ", apiUrl, "fields: ", fields)
+    const formData = new FormData();
+    for (const key in fields) {
+      formData.append(key, fields[key]);
+    }
+    formData.append("file", filename);
+
+    try {
+      const response = await fetch(apiUrl, {
+        method: "POST",
+        body: formData
+      });
+
+      if (response.ok) {
+        setMessage("File uploaded successfully");
+        setFontClass("text-success");
+      } else {
+        setMessage("File upload failed");
+        setFontClass("text-danger");
+      }
+
+    } catch (error) {
+      console.error(error);
+      setMessage("File upload failed");
+      setFontClass("text-danger");
+    }
+  }
+
   const handleSubmit = async (event) => {
     setMessage("")
     setFontClass("text-dark");
+
     if (!examName) {
       setMessage("Please enter an exam name");
       setFontClass("text-danger");
@@ -32,7 +62,12 @@ const Form = () => {
       return
     }
 
-    console.log(examName, email, filename, examCode)
+    console.log(examName, email, filename);
+
+    let examCode = ""
+    let apiUrl = "";
+    let fields = {};
+
 
     const requestBody = JSON.stringify({
       exam_name: examName,
@@ -54,12 +89,12 @@ const Form = () => {
       if (response.ok) {
         try {
           const data = await response.json();
-          const examCode = data.exam_code;
+          examCode = data.exam_code;
           setExamCode(examCode);
           console.log("Exam code: ", examCode);
 
-          const apiUrl = data.urls[0].api_url;
-          const fields = data.urls[0].fields;
+          apiUrl = data.urls[0].api_url;
+          fields = data.urls[0].fields;
           setApiUrl(apiUrl);
           setFields(fields);
           console.log("API URL: ", apiUrl, "Fields: ", fields);
@@ -80,6 +115,8 @@ const Form = () => {
       setMessage("Form submission failed");
       setFontClass("text-danger");
     }
+
+    uploadFileToS3(apiUrl, fields);
   }
 
   return (
@@ -104,7 +141,7 @@ const Form = () => {
           </div>
           <div className="mb-3">
             <label htmlFor="filename" className="form-label fs-6 fw-bold">Upload the study material</label>
-            <input type="file" className="form-control" id="filename" accept=".pdf" onChange={(e) => setFilename(e.target.value)} required />
+            <input type="file" className="form-control" id="filename" accept=".pdf" onChange={(e) => setFilename(e.target.files[0])} required />
             <div id="filenameHelp" className="form-text">
               Only single pdf file uploads are supported at this point.
             </div>
