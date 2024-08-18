@@ -12,36 +12,25 @@ const Form = () => {
   const [examCode, setExamCode] = useState("");
   const [message, setMessage] = useState("");
   const [fontClass, setFontClass] = useState("text-dark");
-  // const [apiUrl, setApiUrl] = useState('');
-  // const [fields, setFields] = useState({});
 
   const uploadFileToS3 = async (apiUrl, fields) => {
-    console.log("In upload, apiUrl: ", apiUrl, "fields: ", fields)
     const formData = new FormData();
     for (const key in fields) {
       formData.append(key, fields[key]);
     }
     formData.append("file", filename);
 
-    try {
-      const response = await fetch(apiUrl, {
-        method: "POST",
-        body: formData,
-      });
-
-      if (response.ok) {
-        setMessage("File uploaded successfully");
-        setFontClass("text-success");
-      } else {
-        setMessage("File upload failed");
+    fetch(apiUrl, { method: "POST", body: formData })
+      .then(response => {
+        const msg = response.ok ? "File uploaded successfully!" : "File upload failed!";
+        setMessage(msg);
+        setFontClass(response.ok ? "text-success" : "text-danger");
+      })
+      .catch(error => {
+        console.error(error);
+        setMessage("File upload failed!");
         setFontClass("text-danger");
-      }
-
-    } catch (error) {
-      console.error(error);
-      setMessage("File upload failed");
-      setFontClass("text-danger");
-    }
+      });
   }
 
   const handleSubmit = async (event) => {
@@ -49,77 +38,55 @@ const Form = () => {
     setFontClass("text-dark");
 
     if (!examName) {
-      setMessage("Please enter an exam name");
+      setMessage("Please enter an exam name!");
       setFontClass("text-danger");
       return
     }
     if (!email) {
-      setMessage("Please enter an email");
+      setMessage("Please enter an email!");
       setFontClass("text-danger");
       return
     }
     if (!filename) {
-      setMessage("Please choose a file");
+      setMessage("Please choose a file!");
       setFontClass("text-danger");
       return
     }
 
-    console.log(examName, email, filename);
-    console.log(backendUrl)
+    // console.log("examName: ", examName, "email: ", email, "filename: ", filename);
 
     let examCode = ""
     let apiUrl = "";
     let fields = {};
-
-
     const requestBody = JSON.stringify({
       exam_name: examName,
       filenames: [filename.name],
       ...(examCode != null && { exam_code: examCode })
     });
 
-    try {
-      const response = await fetch(
-        backendUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: requestBody,
-        mode: "cors",
-      });
-
-      if (response.ok) {
-        try {
-          const data = await response.json();
-          examCode = data.exam_code;
-          setExamCode(examCode);
-          console.log("Exam code: ", examCode);
-
-          apiUrl = data.urls[0].api_url;
-          fields = data.urls[0].fields;
-          // setApiUrl(apiUrl);
-          // setFields(fields);
-          console.log("API URL: ", apiUrl, "Fields: ", fields);
-
-        } catch (error) {
-          console.log("Error submitting form: ", error);
-          setMessage("Form submission failed");
-          setFontClass("text-danger");
-        }
-        setMessage("Exam created successfully");
+    fetch(backendUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: requestBody,
+      mode: "cors",
+    })
+      .then(response => response.ok ? response.json() : Promise.reject("Form submission failed!"))
+      .then(data => {
+        setExamCode(data.exam_code);
+        apiUrl = data.urls[0].api_url;
+        fields = data.urls[0].fields;
+        // console.log("Exam code: ", data.exam_code);
+        // console.log("API URL: ", apiUrl, "Fields: ", fields);
+        setMessage("Exam created successfully!");
         setFontClass("text-success");
-      } else {
-        setMessage("Form submission failed");
-        setFontClass("text-danger");
-      }
-    } catch (error) {
-      console.log("Error submitting form: ", error);
-      setMessage("Form submission failed");
-      setFontClass("text-danger");
-    }
 
-    uploadFileToS3(apiUrl, fields);
+        uploadFileToS3(apiUrl, fields);
+      })
+      .catch(error => {
+        console.log("Error submitting form: ", error);
+        setMessage("Form submission failed!");
+        setFontClass("text-danger");
+      });
   }
 
   return (

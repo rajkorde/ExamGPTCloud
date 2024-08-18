@@ -4,7 +4,7 @@ const Message = props => {
   const { message, fontClass } = props
 
   return (
-    <div className="row justify-content-center mt-5">
+    <div className="row justify-content-center mt-5 fs-6">
       {
         message.length === 0 ?
           <div>
