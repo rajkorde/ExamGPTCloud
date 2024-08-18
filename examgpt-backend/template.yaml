@@ -21,6 +21,7 @@ Globals:
       AllowMethods: "'GET,POST,OPTIONS'"
       AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
       AllowOrigin: "'*'"
+    AlwaysDeploy: true
 
 Resources:
   # S3 Buckets
@@ -28,6 +29,17 @@ Resources:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-bucket
+      CorsConfiguration:
+        CorsRules: # TODO: fix AllowedOrigins and AllowedMethods after front end deployment
+          - AllowedHeaders:
+              - "*"
+            AllowedOrigins:
+              - "*"
+            AllowedMethods:
+              - GET
+              - PUT
+              - POST
+            MaxAge: 3000
 
   # SNS Topics
   ChunkTopic:

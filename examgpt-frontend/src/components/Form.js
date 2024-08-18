@@ -24,7 +24,7 @@ const Form = () => {
     try {
       const response = await fetch(apiUrl, {
         method: "POST",
-        body: formData
+        body: formData,
       });
 
       if (response.ok) {
@@ -71,19 +71,19 @@ const Form = () => {
 
     const requestBody = JSON.stringify({
       exam_name: examName,
-      filenames: [filename],
+      filenames: [filename.name],
       ...(examCode != null && { exam_code: examCode })
     });
 
     try {
       const response = await fetch(
-        "https://hftc3imu3d.execute-api.us-west-2.amazonaws.com/Stage/create_exam", {
+        "https://f2lsm3uhp9.execute-api.us-west-2.amazonaws.com/Stage/create_exam", {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
         body: requestBody,
-        mode: "cors"
+        mode: "cors",
       });
 
       if (response.ok) {
