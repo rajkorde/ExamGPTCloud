@@ -4,14 +4,16 @@ import Message from './Message';
 
 const Form = () => {
 
+  const stage = process.env.REACT_APP_STAGE;
+  const backendUrl = `${process.env.REACT_APP_BACKEND_URL}/${stage}/create_exam`;
   const [examName, setExamName] = useState("");
   const [email, setEmail] = useState("");
   const [filename, setFilename] = useState(null);
   const [examCode, setExamCode] = useState("");
   const [message, setMessage] = useState("");
   const [fontClass, setFontClass] = useState("text-dark");
-  const [apiUrl, setApiUrl] = useState('');
-  const [fields, setFields] = useState({});
+  // const [apiUrl, setApiUrl] = useState('');
+  // const [fields, setFields] = useState({});
 
   const uploadFileToS3 = async (apiUrl, fields) => {
     console.log("In upload, apiUrl: ", apiUrl, "fields: ", fields)
@@ -63,6 +65,7 @@ const Form = () => {
     }
 
     console.log(examName, email, filename);
+    console.log(backendUrl)
 
     let examCode = ""
     let apiUrl = "";
@@ -77,7 +80,7 @@ const Form = () => {
 
     try {
       const response = await fetch(
-        "https://f2lsm3uhp9.execute-api.us-west-2.amazonaws.com/Stage/create_exam", {
+        backendUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
@@ -95,8 +98,8 @@ const Form = () => {
 
           apiUrl = data.urls[0].api_url;
           fields = data.urls[0].fields;
-          setApiUrl(apiUrl);
-          setFields(fields);
+          // setApiUrl(apiUrl);
+          // setFields(fields);
           console.log("API URL: ", apiUrl, "Fields: ", fields);
 
         } catch (error) {
