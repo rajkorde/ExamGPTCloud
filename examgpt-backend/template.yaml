@@ -219,6 +219,19 @@ Resources:
             Method: POST
             RestApiId: !Ref ExamGPTRestApi
 
+  ChatServerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: examgpt_backend/
+      Handler: entrypoints.api.chat_server.handler
+      Events:
+        APIEvent:
+          Type: Api
+          Properties:
+            Path: /chat
+            Method: POST
+            RestApiId: !Ref ExamGPTRestApi
+
   # Connectors
   ChunkerFunctionContentBucketConnector:
     Type: AWS::Serverless::Connector
