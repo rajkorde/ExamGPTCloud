@@ -2,9 +2,7 @@ import os
 from typing import Any
 
 import boto3
-from dotenv import load_dotenv
-
-env_file = "examgpt_backend/.env"
+from lib.utils import load_env_files
 
 
 def get_ssm_parameters() -> list[Any]:
@@ -54,10 +52,7 @@ def update_parameter(name: str, value: str):
 
 
 def main():
-    assert load_dotenv(
-        dotenv_path=env_file
-    ), f"The path to env file is incorrect: {env_file}"
-
+    load_env_files()
     ssm_parameters = get_ssm_parameters()
 
     param = ssm_parameters[0]

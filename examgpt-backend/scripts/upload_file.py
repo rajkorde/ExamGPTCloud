@@ -1,7 +1,7 @@
 from typing import Any
 
-import boto3
 import requests
+from lib.utils import get_api_url, get_env, load_env_files
 
 region = "us-west-2"
 stage = "Stage"
@@ -10,16 +10,6 @@ payload = {
     "exam_name": "AWS Solution Architect Associate Certification Exam",
     "filenames": ["scripts/testdata/aws2.pdf"],
 }
-
-
-def get_api_url():
-    client = boto3.client("apigateway", region_name=region)
-    apis = client.get_rest_apis()
-    if len(apis["items"]) > 1:
-        print(f"Warning:{apis["items"]} API endpoints found. Using the first one.")
-    api = apis["items"][0]
-
-    return f"https://{api['id']}.execute-api.{region}.amazonaws.com/{stage}/create_exam"
 
 
 def upload_file_to_s3(presigned_url: str, fields: dict[str, Any], file_path: str):
@@ -32,7 +22,11 @@ def upload_file_to_s3(presigned_url: str, fields: dict[str, Any], file_path: str
 
 
 def main() -> None:
-    api_url = get_api_url()
+    load_env_files()
+    stage = get_env("STAGE")
+    region = get_env("REGION")
+
+    api_url = get_api_url("create_exam", stage, region)
     print(f"Using api: {api_url}")
 
     print("Requesting presigned URL...")
