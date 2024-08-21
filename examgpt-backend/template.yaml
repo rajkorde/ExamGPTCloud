@@ -231,6 +231,14 @@ Resources:
             Path: /chat
             Method: POST
             RestApiId: !Ref ExamGPTRestApi
+      Policies:
+        - Statement:
+            - Action:
+                - ssm:GetParameter
+                - ssm:GetParameters
+                - ssm:GetParametersByPath
+              Effect: Allow
+              Resource: !Sub arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/examgpt*
 
   # Connectors
   ChunkerFunctionContentBucketConnector:

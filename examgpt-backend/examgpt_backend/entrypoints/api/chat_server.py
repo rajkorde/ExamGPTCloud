@@ -32,6 +32,8 @@ def get_parameter(parameter_name: str, with_decryption: bool = True):
 
 
 tg_bot_token = get_parameter(tg_bot_token_name)
+if not tg_bot_token:
+    raise InvalidEnvironmentSetup(tg_bot_token_name)
 
 
 async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -54,40 +56,32 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def async_handler(event: dict[Any, Any], context: Any):
-    if not tg_bot_token:
-        raise InvalidEnvironmentSetup(tg_bot_token_name)
+    # print("Inside async handler..")
+    # if not tg_bot_token:
+    #     raise InvalidEnvironmentSetup(tg_bot_token_name)
+    # print(f"{tg_bot_token=}")
 
     # Create the Application
     application = ApplicationBuilder().token(tg_bot_token).build()
 
     update = Update.de_json(json.loads(event["body"]), application.bot)
-    print(f"{update=}")
+    # print(f"{update=}")
 
     # Add handler for the /echo command
     application.add_handler(CommandHandler("echo", echo))
     application.add_handler(CommandHandler("whoami", whoami))
 
     # Process the update
-
+    await application.initialize()
     await application.process_update(update)
+    await application.shutdown()
 
 
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
-    print("Executing chat server.")
-
-    print(f"{tg_bot_token=}")
-    print("*** Received event")
-    print(f"{event=}")
-    print(f"{context=}")
-    body = json.loads(event["body"])
-    print(f"{body=}")
-
+    print("Starting chat server.")
+    # print("*** Received event")
+    # print(f"{event=}")
+    # print(f"{context=}")
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(async_handler(event, context))
     return {"statusCode": 200, "body": json.dumps("Message processed successfully")}
-
-    # try:
-    #     loop = asyncio.get_event_loop()
-    #     loop.run_until_complete(async_handler(event, context))
-    #     return {"statusCode": 200, "body": json.dumps("Message processed successfully")}
-    # except Exception as e:
-    #     print(f"Error: {str(e)}")
-    #     return {"statusCode": 500, "body": json.dumps("Error processing message")}

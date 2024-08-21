@@ -11,7 +11,6 @@ async def set_webhook():
     region = get_env("REGION")
 
     api_gateway_url = get_api_url("chat", stage, region)
-    print(f"{api_gateway_url=}")
 
     bot = telegram.Bot(token=bot_token)
     response = await bot.set_webhook(url=api_gateway_url)
