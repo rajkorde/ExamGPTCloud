@@ -2,9 +2,11 @@ import asyncio
 import json
 from typing import Any
 
-import boto3
-from domain.model.utils.exceptions import InvalidEnvironmentSetup
+from adapter.aws.environment_service_ssm import EnvironmentServiceSSM
+from domain.command_handlers.environments_commands_handler import get_parameter
+from domain.commands.environment_commands import GetParameter
 from domain.model.utils.logging import app_logger
+from entrypoints.helpers.utils import CommandRegistry
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -14,26 +16,6 @@ from telegram.ext import (
 
 logger = app_logger.get_logger()
 tg_bot_token_name = "/examgpt/TG_BOT_TOKEN"
-ssm = boto3.client("ssm")
-
-
-def get_parameter(parameter_name: str, with_decryption: bool = True):
-    try:
-        response = ssm.get_parameter(
-            Name=parameter_name, WithDecryption=with_decryption
-        )
-        return str(response["Parameter"]["Value"])
-    except ssm.exceptions.ParameterNotFound:
-        print(f"The parameter {parameter_name} was not found.")
-        return None
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
-        return None
-
-
-tg_bot_token = get_parameter(tg_bot_token_name)
-if not tg_bot_token:
-    raise InvalidEnvironmentSetup(tg_bot_token_name)
 
 
 async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -56,14 +38,10 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def async_handler(event: dict[Any, Any], context: Any):
-    # print("Inside async handler..")
-    # if not tg_bot_token:
-    #     raise InvalidEnvironmentSetup(tg_bot_token_name)
-    # print(f"{tg_bot_token=}")
+    env_service = CommandRegistry().get_environment_service()
+    tg_bot_token = env_service.get_parameter(tg_bot_token_name, is_encrypted=True)
 
-    # Create the Application
     application = ApplicationBuilder().token(tg_bot_token).build()
-
     update = Update.de_json(json.loads(event["body"]), application.bot)
     # print(f"{update=}")
 

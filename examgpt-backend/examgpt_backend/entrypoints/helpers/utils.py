@@ -3,10 +3,12 @@ import os
 from typing import Any
 
 from adapter.aws.content_service_s3 import ContentServiceS3
+from adapter.aws.environment_service_ssm import EnvironmentServiceSSM
 from adapter.aws.exam_service_dynamodb import ExamServiceDynamoDB
 from domain.model.utils.exceptions import InvalidEnvironmentSetup
 from domain.model.utils.logging import app_logger
 from domain.ports.content_service import ContentService
+from domain.ports.environment_service import EnvironmentService
 from domain.ports.exam_service import ExamService
 
 logger = app_logger.get_logger()
@@ -27,7 +29,11 @@ def get_error(
 
 class CommandRegistry:
     _command_registry = {
-        "AWS": {"ContenService": ContentServiceS3, "ExamService": ExamServiceDynamoDB}
+        "AWS": {
+            "ContenService": ContentServiceS3,
+            "ExamService": ExamServiceDynamoDB,
+            "EnvironmentService": EnvironmentServiceSSM,
+        }
     }
 
     def __init__(self):
@@ -46,4 +52,11 @@ class CommandRegistry:
     def get_exam_service(self) -> ExamService:
         service = CommandRegistry._command_registry[str(self.location)]["ExamService"]()
         assert isinstance(service, ExamService)
+        return service
+
+    def get_environment_service(self) -> EnvironmentService:
+        service = CommandRegistry._command_registry[str(self.location)][
+            "EnvironmentService"
+        ]()
+        assert isinstance(service, EnvironmentService)
         return service
