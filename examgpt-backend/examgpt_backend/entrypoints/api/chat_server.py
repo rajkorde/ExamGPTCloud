@@ -13,6 +13,7 @@ from telegram.ext import (
     CommandHandler,
     ContextTypes,
     ConversationHandler,
+    DictPersistence,
     MessageHandler,
     filters,
 )
@@ -275,12 +276,23 @@ async def async_handler(event: dict[Any, Any], context: Any):
     tg_bot_token = get_parameter(
         GetParameter(name=tg_bot_token_name, is_encrypted=True), env_service
     )
-
     logger.debug(f"{tg_bot_token=}")
-    application = ApplicationBuilder().token(tg_bot_token).build()
+
+    persistence = DictPersistence()
+
+    application = (
+        ApplicationBuilder()
+        .token(tg_bot_token)
+        .persistence(persistence=persistence)
+        .build()
+    )
     update = Update.de_json(json.loads(event["body"]), application.bot)
     logger.debug(f"{update=}")
 
+    # TODO: Cannot use conversation handler as is on a lambda
+    # Will need to save the conversation context in S3 with a user id object_key
+    # This mean a user can have only one conversation at a time.
+    # https://github.com/python-telegram-bot/python-telegram-bot/wiki/Making-your-bot-persistent
     mc_handler = ConversationHandler(
         entry_points=[CommandHandler("mc", start_mc)],
         states={
@@ -293,6 +305,8 @@ async def async_handler(event: dict[Any, Any], context: Any):
             ]
         },
         fallbacks=[CommandHandler("cancel", cancel)],
+        persistent=True,
+        name="mc_conversation",
     )
 
     # Add handler for the /echo command
@@ -302,9 +316,23 @@ async def async_handler(event: dict[Any, Any], context: Any):
     application.add_handler(CommandHandler(["start", "help"], start))
 
     # Process the update
-    await application.initialize()
-    await application.process_update(update)
-    await application.shutdown()
+    async with application:
+        await application.process_update(update)
+        await application.update_persistence()
+        bot_data = json.loads(persistence.bot_data_json)
+        user_data = json.loads(persistence.user_data_json)
+        chat_data = json.loads(persistence.chat_data_json)
+        conversations = json.loads(persistence.conversations_json)
+
+        # Combine all data into one dictionary
+        all_data = {
+            "bot_data": bot_data,
+            "user_data": user_data,
+            "chat_data": chat_data,
+            "conversations": conversations,
+        }
+        print(f"{json.dumps(all_data, indent=4)=}")
+        print(all_data)
 
 
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
