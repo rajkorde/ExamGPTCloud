@@ -2,7 +2,6 @@ import asyncio
 import json
 from typing import Any
 
-from adapter.aws.environment_service_ssm import EnvironmentServiceSSM
 from domain.command_handlers.environments_commands_handler import get_parameter
 from domain.commands.environment_commands import GetParameter
 from domain.model.utils.logging import app_logger
@@ -39,7 +38,9 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 async def async_handler(event: dict[Any, Any], context: Any):
     env_service = CommandRegistry().get_environment_service()
-    tg_bot_token = env_service.get_parameter(tg_bot_token_name, is_encrypted=True)
+    tg_bot_token = get_parameter(
+        GetParameter(name=tg_bot_token_name, is_encrypted=True), env_service
+    )
 
     application = ApplicationBuilder().token(tg_bot_token).build()
     update = Update.de_json(json.loads(event["body"]), application.bot)

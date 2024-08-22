@@ -7,7 +7,7 @@ def get_parameter(
     command: GetParameter, environment_service: EnvironmentService
 ) -> str:
     value = environment_service.get_parameter(
-        GetParameter.name, is_encrypted=GetParameter.is_encrypted
+        command.name, is_encrypted=command.is_encrypted
     )
     if not value:
         raise InvalidEnvironmentSetup(GetParameter.name)
