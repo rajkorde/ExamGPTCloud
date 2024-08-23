@@ -1,9 +1,12 @@
+from __future__ import annotations
+
 import asyncio
 import json
 import os
 from typing import Any, NamedTuple, Optional
 
 import boto3
+from boto3.dynamodb.types import TypeDeserializer
 from botocore.exceptions import BotoCoreError, ClientError
 from domain.command_handlers.environments_commands_handler import get_parameter
 from domain.commands.environment_commands import GetParameter
@@ -55,11 +58,16 @@ def put_chat(item: dict[str, Any]) -> bool:
 
 
 def get_chat(user_id: str) -> Optional[dict[str, Any]]:
+    deserializer = TypeDeserializer()
+
+    def deserialize_dynamodb_item(item: dict[str, Any]) -> dict[str, Any]:
+        return {k: deserializer.deserialize(v) for k, v in item.items()}
+
     try:
         response = chat_table.get_item(Key={"user_id": user_id})
         item = response.get("Item")
         if item:
-            return item
+            return deserialize_dynamodb_item(item)
         return None
     except (ClientError, BotoCoreError) as e:
         logger.error(f"Error retrieving chat with key {user_id}: {e}")
@@ -124,6 +132,28 @@ def command_parser(args: list[str]) -> CommandArgs:
         topic = " ".join(args)
 
     return CommandArgs(question_count=count, question_topic=topic)
+
+
+class ParseChat:
+    def __init__(self, chat: dict[str, Any]):
+        self.user_id: str = chat["user_id"]
+        self.bot_data = chat["bot_data"]
+        # name=, key=, new_state=
+        conversation_data = chat["conversations"]
+        conv_name = conversation_data.keys()[0]
+        self.conversation_name = conv_name
+        conv_keys = conversation_data[conv_name].keys()
+
+        self.conversation_key = [key for key in conv_keys if self.user_id in key][0]
+        self.conversation_new_state = conversation_data[conv_name][
+            self.conversation_key
+        ]
+
+    @staticmethod
+    def parse_chat(chat: Optional[dict[str, Any]] = None) -> Optional[ParseChat]:
+        if not chat:
+            return None
+        return ParseChat(chat)
 
 
 async def start_mc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -333,6 +363,8 @@ async def async_handler(event: dict[Any, Any], context: Any):
     else:
         logger.info(f"{old_chat=}")
 
+    old_chat_data = ParseChat.parse_chat(old_chat)
+
     # TODO: Cannot use conversation handler as is on a lambda
     # Will need to save the conversation context in S3 with a user id object_key
     # This mean a user can have only one conversation at a time.
@@ -361,19 +393,23 @@ async def async_handler(event: dict[Any, Any], context: Any):
 
     # Process the update
     async with application:
+        if old_chat_data:
+            await persistence.update_bot_data(data=old_chat_data.bot_data)
+            await persistence.update_conversation(
+                name=old_chat_data.conversation_name,
+                key=old_chat_data.conversation_key,
+                new_state=old_chat_data.conversation_new_state,
+            )
+
         await application.process_update(update)
         await application.update_persistence()
         bot_data = json.loads(persistence.bot_data_json)
-        user_data = json.loads(persistence.user_data_json)
-        chat_data = json.loads(persistence.chat_data_json)
         conversations = json.loads(persistence.conversations_json)
 
         # Combine all data into one dictionary
         all_data = {
             "user_id": user_id,
             "bot_data": bot_data,
-            "user_data": user_data,
-            "chat_data": chat_data,
             "conversations": conversations,
         }
         print(f"{json.dumps(all_data, indent=4)=}")
