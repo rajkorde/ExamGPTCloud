@@ -61,14 +61,24 @@ def get_chat(user_id: str) -> Optional[dict[str, Any]]:
     deserializer = TypeDeserializer()
 
     def deserialize_dynamodb_item(item: dict[str, Any]) -> dict[str, Any]:
-        return {k: deserializer.deserialize(v) for k, v in item.items()}
+        d = {}
+        for k, v in item.items():
+            logger.debug(f"Working on {k}: {v}")
+            v = deserializer.deserialize(v)
+            d[k] = v
+        return d
 
     try:
         response = chat_table.get_item(Key={"user_id": user_id})
+        print(f"{response=}")
+        if "Item" not in response:
+            logger.info("No item found.")
+            return None
+
         item = response.get("Item")
-        if item:
-            return deserialize_dynamodb_item(item)
-        return None
+        print(f"{item=}")
+        return deserialize_dynamodb_item(item)
+
     except (ClientError, BotoCoreError) as e:
         logger.error(f"Error retrieving chat with key {user_id}: {e}")
         return None
@@ -420,8 +430,11 @@ async def async_handler(event: dict[Any, Any], context: Any):
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     print("Starting chat server.")
     # print("*** Received event")
-    # print(f"{event=}")
+    print(f"{event=}")
     # print(f"{context=}")
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(async_handler(event, context))
+    try:
+        loop.run_until_complete(async_handler(event, context))
+    except Exception as e:
+        logger.error(e)
     return {"statusCode": 200, "body": json.dumps("Message processed successfully")}
