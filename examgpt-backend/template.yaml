@@ -249,7 +249,7 @@ Resources:
             RestApiId: !Ref ExamGPTRestApi
       Environment:
         Variables:
-          EXAM_TABLE: !Ref ChatPersistenceTable
+          CHAT_PESISTENCE_TABLE: !Ref ChatPersistenceTable
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref ChatPersistenceTable

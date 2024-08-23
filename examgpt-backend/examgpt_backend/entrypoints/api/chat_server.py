@@ -1,7 +1,10 @@
 import asyncio
 import json
+import os
 from typing import Any, NamedTuple, Optional
 
+import boto3
+from botocore.exceptions import BotoCoreError, ClientError
 from domain.command_handlers.environments_commands_handler import get_parameter
 from domain.commands.environment_commands import GetParameter
 from domain.model.utils.logging import app_logger
@@ -20,6 +23,12 @@ from telegram.ext import (
 
 logger = app_logger.get_logger()
 tg_bot_token_name = "/examgpt/TG_BOT_TOKEN"
+ddb = boto3.resource("dynamodb")
+chat_persistence_table_name = os.environ["CHAT_PESISTENCE_TABLE"]
+if not chat_persistence_table_name:
+    print("Error: Could not find CHAT_PESISTENCE_TABLE in environment variables")
+print(f"{chat_persistence_table_name=}")
+chat_table = ddb.Table(chat_persistence_table_name)
 
 QUIZZING = 1
 
@@ -30,6 +39,31 @@ answer_keyboard_lf = [["Show Answer", "Cancel"]]
 start_markup = ReplyKeyboardMarkup(start_keyboard, one_time_keyboard=True)
 answer_markup_mc = ReplyKeyboardMarkup(answer_keyboard_mc, one_time_keyboard=True)
 answer_markup_lf = ReplyKeyboardMarkup(answer_keyboard_lf, one_time_keyboard=True)
+
+
+def put_chat(item: dict[str, Any]) -> bool:
+    try:
+        chat_table.put_item(
+            Item=item,
+            ConditionExpression="attribute_not_exists(user_id)",
+        )
+        logger.info(f"Chat saved successfully: {item["user_id"]}")
+        return True
+    except (ClientError, BotoCoreError) as e:
+        logger.error(f"Failed saving to Exam table: {e}")
+        return False
+
+
+def get_chat(user_id: str) -> Optional[dict[str, Any]]:
+    try:
+        response = chat_table.get_item(Key={"user_id": user_id})
+        item = response.get("Item")
+        if item:
+            return item
+        return None
+    except (ClientError, BotoCoreError) as e:
+        logger.error(f"Error retrieving chat with key {user_id}: {e}")
+        return None
 
 
 class MultipleChoice(BaseModel):
@@ -287,7 +321,17 @@ async def async_handler(event: dict[Any, Any], context: Any):
         .build()
     )
     update = Update.de_json(json.loads(event["body"]), application.bot)
+    user_id = str(update.effective_user.id)
     logger.debug(f"{update=}")
+    logger.debug(f"{user_id=}")
+
+    # Get and update chat_obj
+    old_chat = get_chat(user_id)
+    logger.info("Getting old chat...")
+    if not old_chat:
+        logger.info("No old chat found")
+    else:
+        logger.info(f"{old_chat=}")
 
     # TODO: Cannot use conversation handler as is on a lambda
     # Will need to save the conversation context in S3 with a user id object_key
@@ -326,6 +370,7 @@ async def async_handler(event: dict[Any, Any], context: Any):
 
         # Combine all data into one dictionary
         all_data = {
+            "user_id": user_id,
             "bot_data": bot_data,
             "user_data": user_data,
             "chat_data": chat_data,
@@ -333,6 +378,7 @@ async def async_handler(event: dict[Any, Any], context: Any):
         }
         print(f"{json.dumps(all_data, indent=4)=}")
         print(all_data)
+        put_chat(item=all_data)
 
 
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
