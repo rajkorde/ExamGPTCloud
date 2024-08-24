@@ -239,7 +239,7 @@ Resources:
       CodeUri: examgpt_backend/
       Handler: entrypoints.api.chat_server.handler
       Timeout: 300
-      MemorySize: 512
+      MemorySize: 128
       Events:
         APIEvent:
           Type: Api

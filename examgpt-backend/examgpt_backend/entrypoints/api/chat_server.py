@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
-import traceback
+from decimal import Decimal
 from typing import Any, NamedTuple, Optional
 
 import boto3
@@ -55,17 +55,36 @@ def put_chat(item: dict[str, Any]) -> bool:
         return False
 
 
-def get_chat(user_id: str) -> Optional[dict[str, Any]]:
+def convert_dynamodb_value(value: Any) -> Any:
     deserializer = TypeDeserializer()
 
-    def deserialize_dynamodb_item(item: dict[str, Any]) -> dict[str, Any]:
-        d = {}
-        for k, v in item.items():
-            logger.debug(f"Working on {k}: {v}")
-            v = deserializer.deserialize(v)
-            d[k] = v
-        return d
+    logger.debug(f"Converting value: {value}")
+    if isinstance(value, dict):
+        return {k: convert_dynamodb_value(v) for k, v in value.items()}
+    elif isinstance(value, list):
+        return [convert_dynamodb_value(v) for v in value]
+    else:
+        if isinstance(value, str):
+            return value
+        deserialized_value = deserializer.deserialize(value)
+        if isinstance(deserialized_value, Decimal):
+            if deserialized_value % 1 == 0:
+                return int(deserialized_value)
+            else:
+                return float(deserialized_value)
+        return deserialized_value
 
+
+def deserialize_dynamodb_item(item: dict[str, Any]) -> dict[str, Any]:
+    # return {k: convert(v) for k, v in item.items()}
+    d = {}
+    for k, v in item.items():
+        logger.debug(f"Working on {k}: {v}")
+        d[k] = convert_dynamodb_value(v)
+    return d
+
+
+def get_chat(user_id: str) -> Optional[dict[str, Any]]:
     try:
         response = chat_table.get_item(Key={"user_id": user_id})
         print(f"{response=}")
@@ -436,6 +455,5 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     try:
         loop.run_until_complete(async_handler(event, context))
     except Exception as e:
-        traceback.print_exc()
         logger.error(e)
     return {"statusCode": 200, "body": json.dumps("Message processed successfully")}
