@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import traceback
 from typing import Any, NamedTuple, Optional
 
 import boto3
@@ -46,10 +47,7 @@ answer_markup_lf = ReplyKeyboardMarkup(answer_keyboard_lf, one_time_keyboard=Tru
 
 def put_chat(item: dict[str, Any]) -> bool:
     try:
-        chat_table.put_item(
-            Item=item,
-            ConditionExpression="attribute_not_exists(user_id)",
-        )
+        chat_table.put_item(Item=item)
         logger.info(f"Chat saved successfully: {item["user_id"]}")
         return True
     except (ClientError, BotoCoreError) as e:
@@ -74,8 +72,10 @@ def get_chat(user_id: str) -> Optional[dict[str, Any]]:
         if "Item" not in response:
             logger.info("No item found.")
             return None
-
         item = response.get("Item")
+        if not item["bot_data"]:
+            logger.info("Empty chat.")
+            return None
         print(f"{item=}")
         return deserialize_dynamodb_item(item)
 
@@ -430,11 +430,12 @@ async def async_handler(event: dict[Any, Any], context: Any):
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     print("Starting chat server.")
     # print("*** Received event")
-    print(f"{event=}")
+    # print(f"{event=}")
     # print(f"{context=}")
     loop = asyncio.get_event_loop()
     try:
         loop.run_until_complete(async_handler(event, context))
     except Exception as e:
+        traceback.print_exc()
         logger.error(e)
     return {"statusCode": 200, "body": json.dumps("Message processed successfully")}
