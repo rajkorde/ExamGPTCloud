@@ -4,11 +4,10 @@ import asyncio
 import json
 import os
 import traceback
-from decimal import Decimal
 from typing import Any, NamedTuple, Optional
 
 import boto3
-from botocore.exceptions import BotoCoreError, ClientError
+from botocore.exceptions import ClientError
 from domain.command_handlers.environments_commands_handler import get_parameter
 from domain.commands.environment_commands import GetParameter
 from domain.model.utils.logging import app_logger
@@ -20,20 +19,15 @@ from telegram.ext import (
     CommandHandler,
     ContextTypes,
     ConversationHandler,
-    DictPersistence,
     MessageHandler,
-    PersistenceInput,
+    PicklePersistence,
     filters,
 )
 
 logger = app_logger.get_logger()
 tg_bot_token_name = "/examgpt/TG_BOT_TOKEN"
-ddb = boto3.resource("dynamodb")
-chat_persistence_table_name = os.environ["CHAT_PESISTENCE_TABLE"]
-if not chat_persistence_table_name:
-    print("Error: Could not find CHAT_PESISTENCE_TABLE in environment variables")
-print(f"{chat_persistence_table_name=}")
-chat_table = ddb.Table(chat_persistence_table_name)
+s3 = boto3.client("s3")
+bucket_name = os.environ["CHAT_BUCKET"]
 
 QUIZZING = 1
 
@@ -44,45 +38,6 @@ answer_keyboard_lf = [["Show Answer", "Cancel"]]
 start_markup = ReplyKeyboardMarkup(start_keyboard, one_time_keyboard=True)
 answer_markup_mc = ReplyKeyboardMarkup(answer_keyboard_mc, one_time_keyboard=True)
 answer_markup_lf = ReplyKeyboardMarkup(answer_keyboard_lf, one_time_keyboard=True)
-
-
-class DecimalEncoder(json.JSONEncoder):
-    def default(self, o: Any):
-        if isinstance(o, Decimal):
-            if abs(o) % 1 > 0:
-                return float(o)
-            else:
-                return int(o)
-        return super(DecimalEncoder, self).default(o)
-
-
-def put_chat(item: dict[str, Any]) -> bool:
-    try:
-        chat_table.put_item(Item=item)
-        logger.info(f"Chat saved successfully: {item["user_id"]}")
-        return True
-    except (ClientError, BotoCoreError) as e:
-        logger.error(f"Failed saving to Exam table: {e}")
-        return False
-
-
-def get_chat(user_id: str) -> Optional[dict[str, Any]]:
-    try:
-        response = chat_table.get_item(Key={"user_id": user_id})
-        if "Item" not in response:
-            return None
-        item = json.loads(
-            json.dumps(response.get("Item"), indent=4, cls=DecimalEncoder)
-        )
-        if not item["bot_data"]:
-            logger.info("Empty chat.")
-            return None
-        logger.debug(f"Getting Chat: {item=}")
-        return item
-
-    except (ClientError, BotoCoreError) as e:
-        logger.error(f"Error retrieving chat with key {user_id}: {e}")
-        return None
 
 
 class MultipleChoice(BaseModel):
@@ -143,28 +98,6 @@ def command_parser(args: list[str]) -> CommandArgs:
         topic = " ".join(args)
 
     return CommandArgs(question_count=count, question_topic=topic)
-
-
-class ParseChat:
-    def __init__(self, chat: dict[str, Any]):
-        self.user_id: str = chat["user_id"]
-        self.bot_data = chat["bot_data"]
-        # name=, key=, new_state=
-        conversation_data = chat["conversations"]
-        conv_name = list(conversation_data.keys())[0]
-        self.conversation_name = conv_name
-        conv_keys = conversation_data[conv_name].keys()
-
-        self.conversation_key = [key for key in conv_keys if self.user_id in key][0]
-        self.conversation_new_state = conversation_data[conv_name][
-            self.conversation_key
-        ]
-
-    @staticmethod
-    def parse_chat(chat: Optional[dict[str, Any]] = None) -> Optional[ParseChat]:
-        if not chat:
-            return None
-        return ParseChat(chat)
 
 
 async def start_mc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -242,7 +175,6 @@ async def quiz_mc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         return await error(update, context)
 
     last_answer = chat_payload["last_answer"]
-    # question_list = chat_payload["question_list"]
     user_answer = update.effective_message.text
 
     if not last_answer == "X":
@@ -335,15 +267,38 @@ https://www.linkedin.com/in/rkorde/
     await context.bot.send_message(chat_id=update.effective_chat.id, text=reply_text)
 
 
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Echo the user message."""
-    echo_text = update.message  # Remove '/echo ' from the beginning
-    if not echo_text:
-        await update.message.reply_text(
-            "Please provide some text to echo. For example: /echo Hello, World!"
-        )
+def log_pkl_filesize(message: str, filename: str):
+    if os.path.exists(filename):
+        logger.debug(f"{message}: {os.path.getsize(filename)}")
     else:
-        await update.message.reply_text(f"You said: {echo_text}")
+        logger.debug(f"{message}: File doesnt exist yet")
+
+
+def upload_file(source: str, destination: str, bucket_name: str):
+    if not os.path.exists(source):
+        return
+    try:
+        s3.upload_file(source, bucket_name, destination)
+    except ClientError as e:
+        logger.error(e)
+        raise e
+    return destination
+
+
+def download_file(source: str, destination: str, bucket_name: str) -> bool:
+    try:
+        s3.download_file(bucket_name, source, destination)
+    except ClientError as e:
+        if (
+            "Error" in e.response
+            and "Code" in e.response["Error"]
+            and e.response["Error"]["Code"] == "404"
+        ):
+            logger.debug("Chat File does not exist remotely.")
+        else:
+            logger.error(e)
+            raise e
+    return os.path.exists(destination)
 
 
 async def async_handler(event: dict[Any, Any], context: Any):
@@ -352,32 +307,22 @@ async def async_handler(event: dict[Any, Any], context: Any):
         GetParameter(name=tg_bot_token_name, is_encrypted=True), env_service
     )
 
-    obj = TelegramObject.de_json(json.loads(event["body"]))
-    logger.debug(f"{obj.to_dict()=}")
+    obj = TelegramObject.de_json(json.loads(event["body"])).to_dict()
+    user_id = str(obj["message"]["from"]["id"])
 
-    user_id = str(obj.to_dict()["message"]["from"]["id"])
-    logger.debug(f"{user_id=}")
-    # Get and update chat_obj
-    old_chat = get_chat(user_id)
-    if not old_chat:
-        logger.info("No old chat found")
+    pickle_file_path = "/tmp/chat.pkl"
+    pickle_object_key = f"chat/{user_id}/chat.pkl"
+    download_file(
+        source=pickle_object_key, destination=pickle_file_path, bucket_name=bucket_name
+    )
 
-    old_chat_data = ParseChat.parse_chat(old_chat)
-
-    if old_chat and old_chat.get("conversations"):
-        logger.debug("Creating persistence object from old chat data")
-        persistence = DictPersistence(
-            bot_data_json=json.loads(old_chat["bot_data"]),
-            conversations_json=json.loads(old_chat["conversations"]),
-        )
-    else:
-        persistence = DictPersistence()
     application = (
         ApplicationBuilder()
         .token(tg_bot_token)
-        .persistence(persistence=persistence)
+        .persistence(persistence=PicklePersistence(pickle_file_path))
         .build()
     )
+
     update = Update.de_json(json.loads(event["body"]), application.bot)
     try:
         logger.debug(f"User command: {update.message.text}")
@@ -385,10 +330,6 @@ async def async_handler(event: dict[Any, Any], context: Any):
         logger.debug("Could not parse update.")
         logger.debug(e)
 
-    # TODO: Cannot use conversation handler as is on a lambda
-    # Will need to save the conversation context in S3 with a user id object_key
-    # This mean a user can have only one conversation at a time.
-    # https://github.com/python-telegram-bot/python-telegram-bot/wiki/Making-your-bot-persistent
     mc_handler = ConversationHandler(
         entry_points=[CommandHandler("mc", start_mc)],
         states={
@@ -405,53 +346,29 @@ async def async_handler(event: dict[Any, Any], context: Any):
         name="mc_conversation",
     )
 
-    # Add handler for the /echo command
     application.add_handler(mc_handler)
-    application.add_handler(CommandHandler("echo", echo))
+    # TODO: Remove whoami
     application.add_handler(CommandHandler("whoami", whoami))
     application.add_handler(CommandHandler(["start", "help"], start))
 
     # Process the update
     async with application:
-        # # update persistence only if there is an ongoing conversation
-        # if old_chat_data and old_chat_data.conversation_key:
-        #     logger.debug("Updating bot data.")
-        #     await persistence.update_bot_data(data=old_chat_data.bot_data)
-        #     await persistence.update_conversation(
-        #         name=old_chat_data.conversation_name,
-        #         key=old_chat_data.conversation_key,
-        #         new_state=old_chat_data.conversation_new_state,
-        #     )
-
         await application.process_update(update)
         await application.update_persistence()
-
-        # bot_data = await persistence.get_bot_data()
-        # conversations = await persistence.get_conversations(name="mc_conversation")
-        bot_data = persistence.bot_data
-        conversations = persistence.conversations
-        logger.debug(f"{bot_data=}")
-        logger.debug(f"{conversations=}")
-        if conversations and len(conversations.keys()) > 0:
-            # Combine all data into one dictionary
-            all_data = {
-                "user_id": user_id,
-                "bot_data": bot_data,
-                "conversations": conversations,
-            }
-            logger.debug(f"Saving data in DB: {all_data}=")
-            put_chat(item=all_data)
+        upload_file(
+            source=pickle_file_path,
+            destination=pickle_object_key,
+            bucket_name=bucket_name,
+        )
 
 
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     logger.info("Starting chat server.")
-    # print("*** Received event")
-    # print(f"{event=}")
-    # print(f"{context=}")
     loop = asyncio.get_event_loop()
     try:
         loop.run_until_complete(async_handler(event, context))
     except Exception as e:
         traceback.print_exc()
         logger.error(e)
+        return {"statusCode": 500, "body": json.dumps("Something went wrong")}
     return {"statusCode": 200, "body": json.dumps("Message processed successfully")}

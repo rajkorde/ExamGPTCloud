@@ -41,6 +41,11 @@ Resources:
               - POST
             MaxAge: 3000
 
+  ChatBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-chat-bucket
+
   # SNS Topics
   ChunkTopic:
     Type: AWS::SNS::Topic
@@ -92,19 +97,19 @@ Resources:
           AttributeType: S
       TableName: !Sub ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-exam
 
-  ChatPersistenceTable:
-    Type: AWS::DynamoDB::Table
-    Properties:
-      ProvisionedThroughput:
-        ReadCapacityUnits: 2
-        WriteCapacityUnits: 2
-      KeySchema:
-        - AttributeName: user_id
-          KeyType: HASH
-      AttributeDefinitions:
-        - AttributeName: user_id
-          AttributeType: S
-      TableName: !Sub ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-chatpersistence
+  # ChatPersistenceTable:
+  #   Type: AWS::DynamoDB::Table
+  #   Properties:
+  #     ProvisionedThroughput:
+  #       ReadCapacityUnits: 2
+  #       WriteCapacityUnits: 2
+  #     KeySchema:
+  #       - AttributeName: user_id
+  #         KeyType: HASH
+  #     AttributeDefinitions:
+  #       - AttributeName: user_id
+  #         AttributeType: S
+  #     TableName: !Sub ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-chatpersistence
 
   # TODO: switch billing mode to use the full free tier capacity
   ChunkTable:
@@ -249,10 +254,10 @@ Resources:
             RestApiId: !Ref ExamGPTRestApi
       Environment:
         Variables:
-          CHAT_PESISTENCE_TABLE: !Ref ChatPersistenceTable
+          CHAT_BUCKET: !Ref ChatBucket
       Policies:
-        - DynamoDBCrudPolicy:
-            TableName: !Ref ChatPersistenceTable
+        - S3CrudPolicy:
+            BucketName: !Ref ChatBucket
         - Statement:
             - Action:
                 - ssm:GetParameter
