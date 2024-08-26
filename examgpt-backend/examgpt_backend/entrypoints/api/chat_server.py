@@ -3,11 +3,11 @@ from __future__ import annotations
 import asyncio
 import json
 import os
+import traceback
 from decimal import Decimal
 from typing import Any, NamedTuple, Optional
 
 import boto3
-from boto3.dynamodb.types import TypeDeserializer
 from botocore.exceptions import BotoCoreError, ClientError
 from domain.command_handlers.environments_commands_handler import get_parameter
 from domain.commands.environment_commands import GetParameter
@@ -45,6 +45,16 @@ answer_markup_mc = ReplyKeyboardMarkup(answer_keyboard_mc, one_time_keyboard=Tru
 answer_markup_lf = ReplyKeyboardMarkup(answer_keyboard_lf, one_time_keyboard=True)
 
 
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, o: Any):
+        if isinstance(o, Decimal):
+            if abs(o) % 1 > 0:
+                return float(o)
+            else:
+                return int(o)
+        return super(DecimalEncoder, self).default(o)
+
+
 def put_chat(item: dict[str, Any]) -> bool:
     try:
         chat_table.put_item(Item=item)
@@ -55,48 +65,20 @@ def put_chat(item: dict[str, Any]) -> bool:
         return False
 
 
-def convert_dynamodb_value(value: Any) -> Any:
-    deserializer = TypeDeserializer()
-
-    logger.debug(f"Converting value: {value}")
-    if isinstance(value, dict):
-        return {k: convert_dynamodb_value(v) for k, v in value.items()}
-    elif isinstance(value, list):
-        return [convert_dynamodb_value(v) for v in value]
-    else:
-        if isinstance(value, str):
-            return value
-        deserialized_value = deserializer.deserialize(value)
-        if isinstance(deserialized_value, Decimal):
-            if deserialized_value % 1 == 0:
-                return int(deserialized_value)
-            else:
-                return float(deserialized_value)
-        return deserialized_value
-
-
-def deserialize_dynamodb_item(item: dict[str, Any]) -> dict[str, Any]:
-    # return {k: convert(v) for k, v in item.items()}
-    d = {}
-    for k, v in item.items():
-        logger.debug(f"Working on {k}: {v}")
-        d[k] = convert_dynamodb_value(v)
-    return d
-
-
 def get_chat(user_id: str) -> Optional[dict[str, Any]]:
     try:
         response = chat_table.get_item(Key={"user_id": user_id})
-        print(f"{response=}")
         if "Item" not in response:
             logger.info("No item found.")
             return None
-        item = response.get("Item")
+        item = json.loads(
+            json.dumps(response.get("Item"), indent=4, cls=DecimalEncoder)
+        )
         if not item["bot_data"]:
             logger.info("Empty chat.")
             return None
-        print(f"{item=}")
-        return deserialize_dynamodb_item(item)
+        logger.debug(f"Getting Chat: {item=}")
+        return item
 
     except (ClientError, BotoCoreError) as e:
         logger.error(f"Error retrieving chat with key {user_id}: {e}")
@@ -169,7 +151,7 @@ class ParseChat:
         self.bot_data = chat["bot_data"]
         # name=, key=, new_state=
         conversation_data = chat["conversations"]
-        conv_name = conversation_data.keys()[0]
+        conv_name = list(conversation_data.keys())[0]
         self.conversation_name = conv_name
         conv_keys = conversation_data[conv_name].keys()
 
@@ -369,10 +351,8 @@ async def async_handler(event: dict[Any, Any], context: Any):
     tg_bot_token = get_parameter(
         GetParameter(name=tg_bot_token_name, is_encrypted=True), env_service
     )
-    logger.debug(f"{tg_bot_token=}")
 
     persistence = DictPersistence()
-
     application = (
         ApplicationBuilder()
         .token(tg_bot_token)
@@ -381,16 +361,13 @@ async def async_handler(event: dict[Any, Any], context: Any):
     )
     update = Update.de_json(json.loads(event["body"]), application.bot)
     user_id = str(update.effective_user.id)
-    logger.debug(f"{update=}")
-    logger.debug(f"{user_id=}")
 
     # Get and update chat_obj
     old_chat = get_chat(user_id)
-    logger.info("Getting old chat...")
     if not old_chat:
         logger.info("No old chat found")
     else:
-        logger.info(f"{old_chat=}")
+        logger.info("Got old chat.")
 
     old_chat_data = ParseChat.parse_chat(old_chat)
 
@@ -441,13 +418,13 @@ async def async_handler(event: dict[Any, Any], context: Any):
             "bot_data": bot_data,
             "conversations": conversations,
         }
-        print(f"{json.dumps(all_data, indent=4)=}")
-        print(all_data)
+        # print(f"{json.dumps(all_data, indent=4)=}")
+        logger.debug(f"Saving data in DB: {all_data}=")
         put_chat(item=all_data)
 
 
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
-    print("Starting chat server.")
+    logger.info("Starting chat server.")
     # print("*** Received event")
     # print(f"{event=}")
     # print(f"{context=}")
@@ -455,5 +432,6 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     try:
         loop.run_until_complete(async_handler(event, context))
     except Exception as e:
+        traceback.print_exc()
         logger.error(e)
     return {"statusCode": 200, "body": json.dumps("Message processed successfully")}
