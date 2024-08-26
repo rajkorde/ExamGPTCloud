@@ -14,7 +14,7 @@ from domain.commands.environment_commands import GetParameter
 from domain.model.utils.logging import app_logger
 from entrypoints.helpers.utils import CommandRegistry
 from pydantic import BaseModel, Field
-from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
+from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, TelegramObject, Update
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -22,6 +22,7 @@ from telegram.ext import (
     ConversationHandler,
     DictPersistence,
     MessageHandler,
+    PersistenceInput,
     filters,
 )
 
@@ -69,7 +70,6 @@ def get_chat(user_id: str) -> Optional[dict[str, Any]]:
     try:
         response = chat_table.get_item(Key={"user_id": user_id})
         if "Item" not in response:
-            logger.info("No item found.")
             return None
         item = json.loads(
             json.dumps(response.get("Item"), indent=4, cls=DecimalEncoder)
@@ -352,7 +352,26 @@ async def async_handler(event: dict[Any, Any], context: Any):
         GetParameter(name=tg_bot_token_name, is_encrypted=True), env_service
     )
 
-    persistence = DictPersistence()
+    obj = TelegramObject.de_json(json.loads(event["body"]))
+    logger.debug(f"{obj.to_dict()=}")
+
+    user_id = str(obj.to_dict()["message"]["from"]["id"])
+    logger.debug(f"{user_id=}")
+    # Get and update chat_obj
+    old_chat = get_chat(user_id)
+    if not old_chat:
+        logger.info("No old chat found")
+
+    old_chat_data = ParseChat.parse_chat(old_chat)
+
+    if old_chat and old_chat.get("conversations"):
+        logger.debug("Creating persistence object from old chat data")
+        persistence = DictPersistence(
+            bot_data_json=json.loads(old_chat["bot_data"]),
+            conversations_json=json.loads(old_chat["conversations"]),
+        )
+    else:
+        persistence = DictPersistence()
     application = (
         ApplicationBuilder()
         .token(tg_bot_token)
@@ -360,16 +379,11 @@ async def async_handler(event: dict[Any, Any], context: Any):
         .build()
     )
     update = Update.de_json(json.loads(event["body"]), application.bot)
-    user_id = str(update.effective_user.id)
-
-    # Get and update chat_obj
-    old_chat = get_chat(user_id)
-    if not old_chat:
-        logger.info("No old chat found")
-    else:
-        logger.info("Got old chat.")
-
-    old_chat_data = ParseChat.parse_chat(old_chat)
+    try:
+        logger.debug(f"User command: {update.message.text}")
+    except Exception as e:
+        logger.debug("Could not parse update.")
+        logger.debug(e)
 
     # TODO: Cannot use conversation handler as is on a lambda
     # Will need to save the conversation context in S3 with a user id object_key
@@ -399,28 +413,34 @@ async def async_handler(event: dict[Any, Any], context: Any):
 
     # Process the update
     async with application:
-        if old_chat_data:
-            await persistence.update_bot_data(data=old_chat_data.bot_data)
-            await persistence.update_conversation(
-                name=old_chat_data.conversation_name,
-                key=old_chat_data.conversation_key,
-                new_state=old_chat_data.conversation_new_state,
-            )
+        # # update persistence only if there is an ongoing conversation
+        # if old_chat_data and old_chat_data.conversation_key:
+        #     logger.debug("Updating bot data.")
+        #     await persistence.update_bot_data(data=old_chat_data.bot_data)
+        #     await persistence.update_conversation(
+        #         name=old_chat_data.conversation_name,
+        #         key=old_chat_data.conversation_key,
+        #         new_state=old_chat_data.conversation_new_state,
+        #     )
 
         await application.process_update(update)
         await application.update_persistence()
-        bot_data = json.loads(persistence.bot_data_json)
-        conversations = json.loads(persistence.conversations_json)
 
-        # Combine all data into one dictionary
-        all_data = {
-            "user_id": user_id,
-            "bot_data": bot_data,
-            "conversations": conversations,
-        }
-        # print(f"{json.dumps(all_data, indent=4)=}")
-        logger.debug(f"Saving data in DB: {all_data}=")
-        put_chat(item=all_data)
+        # bot_data = await persistence.get_bot_data()
+        # conversations = await persistence.get_conversations(name="mc_conversation")
+        bot_data = persistence.bot_data
+        conversations = persistence.conversations
+        logger.debug(f"{bot_data=}")
+        logger.debug(f"{conversations=}")
+        if conversations and len(conversations.keys()) > 0:
+            # Combine all data into one dictionary
+            all_data = {
+                "user_id": user_id,
+                "bot_data": bot_data,
+                "conversations": conversations,
+            }
+            logger.debug(f"Saving data in DB: {all_data}=")
+            put_chat(item=all_data)
 
 
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
