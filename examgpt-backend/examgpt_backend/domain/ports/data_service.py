@@ -5,7 +5,7 @@ from typing import Optional
 from domain.model.core.exam import Exam
 
 
-class ExamService(ABC):
+class DataService(ABC):
     @staticmethod
     def create_exam(name: str, filenames: list[str], exam_code: str | None) -> Exam:
         exam = (

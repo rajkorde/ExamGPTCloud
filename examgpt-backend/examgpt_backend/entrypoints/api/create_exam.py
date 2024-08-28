@@ -7,7 +7,7 @@ from domain.command_handlers.exam_commands_handler import save_exam
 from domain.commands.content_commands import CreateUploadURLs
 from domain.commands.exam_commands import SaveExam
 from domain.model.utils.logging import app_logger
-from domain.ports.exam_service import ExamService
+from domain.ports.data_service import DataService
 from entrypoints.helpers.utils import CommandRegistry, get_error
 from entrypoints.models.api_model import CreateExamRequest
 
@@ -25,7 +25,7 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     if not exam_request:
         return get_error("Malformed request.", error_code=400)
 
-    exam = ExamService.create_exam(
+    exam = DataService.create_exam(
         name=exam_request.exam_name,
         filenames=exam_request.filenames,
         exam_code=exam_request.exam_code,
