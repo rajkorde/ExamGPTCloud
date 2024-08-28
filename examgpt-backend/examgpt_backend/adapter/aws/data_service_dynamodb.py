@@ -6,14 +6,14 @@ from domain.model.core.exam import Exam, ExamState
 from domain.model.utils.exceptions import InvalidEnvironmentSetup
 from domain.model.utils.logging import app_logger
 from domain.model.utils.misc import get_env_var
-from domain.ports.data_service import DataService
+from domain.ports.data_service import ExamService
 
 logger = app_logger.get_logger()
-EXAM_TABLE_ENV_VAR: str = "EXAM_TABLE"
 
 
-class DataServiceDynamoDB(DataService):
+class ExamServiceDynamoDB(ExamService):
     def __init__(self):
+        EXAM_TABLE_ENV_VAR: str = "EXAM_TABLE"
         table_name = get_env_var(EXAM_TABLE_ENV_VAR)
         if not table_name:
             raise InvalidEnvironmentSetup(EXAM_TABLE_ENV_VAR)
