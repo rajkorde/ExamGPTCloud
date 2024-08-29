@@ -2,7 +2,8 @@ import os
 from abc import ABC, abstractmethod
 from typing import Optional
 
-from domain.model.core.exam import Exam
+from domain.model.core.chunk import TextChunk
+from domain.model.core.exam import Exam, ExamState
 
 
 class ExamService(ABC):
@@ -28,3 +29,11 @@ class ExamService(ABC):
 
     @abstractmethod
     def get_exam(self, exam_code: str) -> Optional[Exam]: ...
+
+    @abstractmethod
+    def update_state(self, exam_code: str, newstate: ExamState) -> bool: ...
+
+
+class ChunkService(ABC):
+    @abstractmethod
+    def save_chunks(self, chunks: list[TextChunk]) -> bool: ...
