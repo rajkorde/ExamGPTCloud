@@ -3,13 +3,15 @@ import os
 from typing import Any
 
 import boto3
+from domain.model.utils.logging import app_logger
 
-# from ai.model_providers.openai import OpenAIProvider
-
+# from ai.model_providers
+# logger = app_logger.get_logger()
 ssm = boto3.client("ssm")
 openai_key_name = "/examgpt/OPENAI_API_KEY"
 
 ddb = boto3.resource("dynamodb")
+logger = app_logger.get_logger()
 
 
 def get_parameter(parameter_name: str, with_decryption: bool = True):
@@ -27,25 +29,25 @@ def get_parameter(parameter_name: str, with_decryption: bool = True):
 
 
 def handler(event: dict[str, Any], context: Any):
-    message = "Generating QAs based on messages"
-    print(message)
+    message = "Generating QAs based on notifcation."
+    logger.debug(message)
     # print(f"{event}")
 
     chunk_table = os.environ["CHUNK_TABLE"]
     if not chunk_table:
-        print("Error: Could not find chunk table in environment variables")
-    print(f"{chunk_table=}")
+        logger.error("Error: Could not find chunk table in environment variables")
+    logger.debug(f"{chunk_table=}")
 
     key = get_parameter(parameter_name=openai_key_name)
     keyname = openai_key_name.split("/")[-1]
     if not key:
-        print(f"Error: Incorrect key from ssm parameter store: {key}")
+        logger.error(f"Error: Incorrect key from ssm parameter store: {key}")
     else:
         os.environ[keyname] = key
-    print(f"{key=}")
+    logger.debug(f"{key=}")
 
     chunk = event["Records"][0]["Sns"]["Message"]
-    print(f"{chunk=}")
+    logger.debug(f"{chunk=}")
 
     # model = OpenAIProvider()
     # chat = model.get_chat_model()

@@ -1,12 +1,11 @@
 import json
 from typing import Any
 
-import boto3
 from domain.chunker.pdf_chunker import SimplePDFChunker
-from domain.command_handlers.chunks_commands_handler import save_chunks
+from domain.command_handlers.chunks_commands_handler import notify_chunks, save_chunks
 from domain.command_handlers.content_commands_handler import download_file
 from domain.command_handlers.exam_commands_handler import update_exam_state
-from domain.commands.chunks_commands import SaveChunks
+from domain.commands.chunks_commands import NotifyChunks, SaveChunks
 from domain.commands.content_commands import DownloadFile
 from domain.commands.exam_commands import UpdateExamState
 from domain.model.core.exam import ExamState
@@ -15,30 +14,18 @@ from entrypoints.helpers.utils import CommandRegistry, get_error
 from entrypoints.models.api_model import ChunkerRequest
 
 logger = app_logger.get_logger()
-
-s3 = boto3.client("s3")
-sns = boto3.client("sns")
-ddb = boto3.resource("dynamodb")
 CHUNK_BATCH_SIZE = 10
-
-
-# def save_chunk(chunk: TextChunk, table_name: str):
-#     table = ddb.Table(table_name)
-#     try:
-#         table.put_item(Item=chunk.model_dump())
-#     except ValidationError as e:
-#         print(f"Validation error: {e}")
 
 
 def handler(event: dict[str, Any], context: Any):
     print(event)
-
-    message = "In Chunking code"
+    logger.debug("Starting Chunking.")
     command_registry = CommandRegistry()
     content_service = command_registry.get_content_service()
     # exam_service = command_registry.get_exam_service()
 
     # Download File
+    logger.debug("Downloading file.")
     chunker_request = ChunkerRequest.parse_event(event)
     if not chunker_request:
         logger.error("Error: Could not parse event")
@@ -54,12 +41,14 @@ def handler(event: dict[str, Any], context: Any):
     logger.debug(f"{downloaded_file=}")
 
     # Chunk file
+    logger.debug("Chunking file.")
     chunker = SimplePDFChunker()
     chunks = chunker.chunk(location=downloaded_file, exam_code=exam_code)
     logger.debug(f"Chunks size: {len(chunks)}")
     logger.debug(chunks[33].model_dump())
 
     # Save chunks in batch
+    logger.debug("Saving chunks.")
     chunk_service = command_registry.get_chunk_service()
     response = save_chunks(SaveChunks(chunks=chunks), chunk_service)
     if not response:
@@ -67,8 +56,24 @@ def handler(event: dict[str, Any], context: Any):
         return get_error()
 
     # Publish chunk topic in batches
+    logger.debug("Notifying next service.")
+    chunk_notification_service = command_registry.get_chunk_notification_service()
+
+    # for i in range(0, len(chunks), CHUNK_BATCH_SIZE):
+    #     notify_chunks(
+    #         NotifyChunks(
+    #             chunk_ids=[c.chunk_id for c in chunks[i : i + CHUNK_BATCH_SIZE]]
+    #         ),
+    #         chunk_notification_service,
+    #     )
+    # test code
+    notify_chunks(
+        NotifyChunks(chunk_ids=[c.chunk_id for c in chunks[0:CHUNK_BATCH_SIZE]]),
+        chunk_notification_service,
+    )
 
     # Update Exam state
+    logger.debug("Updating exam state.")
     exam_service = command_registry.get_exam_service()
     response = update_exam_state(
         UpdateExamState(exam_code=exam_code, state=ExamState.CHUNKED), exam_service
@@ -115,11 +120,12 @@ def handler(event: dict[str, Any], context: Any):
     #     MessageStructure="json",
     # )
 
+    logger.debug("Chunking complete.")
     return {
         "statusCode": 200,
         "body": json.dumps(
             {
-                "message": message,
+                "message": "File chunked successfully.",
             }
         ),
     }
