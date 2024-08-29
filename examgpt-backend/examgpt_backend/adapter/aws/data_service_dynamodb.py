@@ -2,11 +2,13 @@ from typing import Optional
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
+from domain.model.core.chunk import TextChunk
 from domain.model.core.exam import Exam, ExamState
 from domain.model.utils.exceptions import InvalidEnvironmentSetup
 from domain.model.utils.logging import app_logger
 from domain.model.utils.misc import get_env_var
-from domain.ports.data_service import ExamService
+from domain.ports.data_service import ChunkService, ExamService
+from pydantic import ValidationError
 
 logger = app_logger.get_logger()
 
@@ -46,3 +48,27 @@ class ExamServiceDynamoDB(ExamService):
         except (ClientError, BotoCoreError) as e:
             logger.error(f"Error retrieving exam item with key {exam_code}: {e}")
             return None
+
+    def update_state(self, exam_code: str, newstate: ExamState) -> bool: ...
+
+
+class ChunkServiceDynamoDB(ChunkService):
+    def __init__(self):
+        CHUNKS_TABLE_ENV_VAR: str = "CHUNK_TABLE"
+        table_name = get_env_var(CHUNKS_TABLE_ENV_VAR)
+        if not table_name:
+            raise InvalidEnvironmentSetup(CHUNKS_TABLE_ENV_VAR)
+        self.ddb = boto3.resource("dynamodb")
+        self.table = self.ddb.Table(table_name)
+
+    def save_chunks(self, chunks: list[TextChunk]) -> bool:
+        try:
+            with self.table.batch_writer() as batch:
+                for chunk in chunks:
+                    item = chunk.model_dump()
+                    item["state"] = chunk.state.value
+                    batch.put_item(Item=item)
+        except ValidationError as e:
+            logger.error(f"Validation error: {e}")
+            return False
+        return True

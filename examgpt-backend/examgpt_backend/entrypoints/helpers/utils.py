@@ -3,12 +3,12 @@ import os
 from typing import Any
 
 from adapter.aws.content_service_s3 import ContentServiceS3
-from adapter.aws.data_service_dynamodb import ExamServiceDynamoDB
+from adapter.aws.data_service_dynamodb import ChunkServiceDynamoDB, ExamServiceDynamoDB
 from adapter.aws.environment_service_ssm import EnvironmentServiceSSM
 from domain.model.utils.exceptions import InvalidEnvironmentSetup
 from domain.model.utils.logging import app_logger
 from domain.ports.content_service import ContentService
-from domain.ports.data_service import ExamService
+from domain.ports.data_service import ChunkService, ExamService
 from domain.ports.environment_service import EnvironmentService
 
 logger = app_logger.get_logger()
@@ -33,6 +33,7 @@ class CommandRegistry:
             "ContenService": ContentServiceS3,
             "ExamService": ExamServiceDynamoDB,
             "EnvironmentService": EnvironmentServiceSSM,
+            "ChunkService": ChunkServiceDynamoDB,
         }
     }
 
@@ -59,4 +60,11 @@ class CommandRegistry:
             "EnvironmentService"
         ]()
         assert isinstance(service, EnvironmentService)
+        return service
+
+    def get_chunk_service(self) -> ChunkService:
+        service = CommandRegistry._command_registry[str(self.location)][
+            "ChunkService"
+        ]()
+        assert isinstance(service, ChunkService)
         return service

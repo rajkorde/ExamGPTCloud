@@ -3,13 +3,13 @@ from typing import Any
 
 import boto3
 from domain.chunker.pdf_chunker import SimplePDFChunker
+from domain.command_handlers.chunks_commands_handler import save_chunks
 from domain.command_handlers.content_commands_handler import download_file
+from domain.commands.chunks_commands import SaveChunks
 from domain.commands.content_commands import DownloadFile
-from domain.model.core.chunk import TextChunk
 from domain.model.utils.logging import app_logger
 from entrypoints.helpers.utils import CommandRegistry, get_error
 from entrypoints.models.api_model import ChunkerRequest
-from pydantic import ValidationError
 
 logger = app_logger.get_logger()
 
@@ -19,12 +19,12 @@ ddb = boto3.resource("dynamodb")
 CHUNK_BATCH_SIZE = 10
 
 
-def save_chunk(chunk: TextChunk, table_name: str):
-    table = ddb.Table(table_name)
-    try:
-        table.put_item(Item=chunk.to_dict())
-    except ValidationError as e:
-        print(f"Validation error: {e}")
+# def save_chunk(chunk: TextChunk, table_name: str):
+#     table = ddb.Table(table_name)
+#     try:
+#         table.put_item(Item=chunk.model_dump())
+#     except ValidationError as e:
+#         print(f"Validation error: {e}")
 
 
 def handler(event: dict[str, Any], context: Any):
@@ -38,8 +38,8 @@ def handler(event: dict[str, Any], context: Any):
     # Download File
     chunker_request = ChunkerRequest.parse_event(event)
     if not chunker_request:
-        print("Error: Could not parse event")
-        return get_error("Malformed S3 event", error_code=400)
+        logger.error("Error: Could not parse event")
+        return get_error()
     exam_code = chunker_request.exam_code
 
     downloaded_file = download_file(
@@ -54,9 +54,15 @@ def handler(event: dict[str, Any], context: Any):
     chunker = SimplePDFChunker()
     chunks = chunker.chunk(location=downloaded_file, exam_code=exam_code)
     logger.debug(f"Chunks size: {len(chunks)}")
-    logger.debug(chunks[33].to_dict())
+    logger.debug(chunks[33].model_dump())
 
     # Save chunks in batch
+    chunk_service = command_registry.get_chunk_service()
+    response = save_chunks(SaveChunks(chunks=chunks), chunk_service)
+    if not response:
+        logger.error("Error: Could not save chunks")
+        return get_error()
+
     # Publish chunk topic in batches
     # Update Exam state
 

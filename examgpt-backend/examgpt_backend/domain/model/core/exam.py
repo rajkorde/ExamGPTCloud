@@ -13,7 +13,7 @@ class ExamState(Enum):
     SAVED = "saved"
     UPLOADED = "uploaded"
     CHUNKED = "chunked"
-    QAGENERATED = "qa_generated"
+    READY = "ready"  # QAs have been generated
 
 
 class Exam(BaseModel):
