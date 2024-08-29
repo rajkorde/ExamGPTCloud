@@ -5,8 +5,11 @@ import boto3
 from domain.chunker.pdf_chunker import SimplePDFChunker
 from domain.command_handlers.chunks_commands_handler import save_chunks
 from domain.command_handlers.content_commands_handler import download_file
+from domain.command_handlers.exam_commands_handler import update_exam_state
 from domain.commands.chunks_commands import SaveChunks
 from domain.commands.content_commands import DownloadFile
+from domain.commands.exam_commands import UpdateExamState
+from domain.model.core.exam import ExamState
 from domain.model.utils.logging import app_logger
 from entrypoints.helpers.utils import CommandRegistry, get_error
 from entrypoints.models.api_model import ChunkerRequest
@@ -64,7 +67,17 @@ def handler(event: dict[str, Any], context: Any):
         return get_error()
 
     # Publish chunk topic in batches
+
     # Update Exam state
+    exam_service = command_registry.get_exam_service()
+    response = update_exam_state(
+        UpdateExamState(exam_code=exam_code, state=ExamState.CHUNKED), exam_service
+    )
+    if not response:
+        logger.error(
+            f"Error: Could not update state of the exam to f{ExamState.CHUNKED}"
+        )
+        return get_error()
 
     # chunk_table = os.environ["CHUNK_TABLE"]
     # if not chunk_table:

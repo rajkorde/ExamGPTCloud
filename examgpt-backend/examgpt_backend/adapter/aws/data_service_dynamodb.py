@@ -49,7 +49,18 @@ class ExamServiceDynamoDB(ExamService):
             logger.error(f"Error retrieving exam item with key {exam_code}: {e}")
             return None
 
-    def update_state(self, exam_code: str, newstate: ExamState) -> bool: ...
+    def update_state(self, exam_code: str, newstate: ExamState) -> bool:
+        exam = self.get_exam(exam_code)
+        if not exam:
+            logger.error(f"Exam with this code not while updating state: f{exam_code}")
+            return False
+
+        exam.state = newstate
+        response = self.put_exam(exam)
+        if not response:
+            logger.error(f"Failed to update state for exam: {exam_code}")
+            return False
+        return True
 
 
 class ChunkServiceDynamoDB(ChunkService):
