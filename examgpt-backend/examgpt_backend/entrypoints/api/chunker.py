@@ -1,5 +1,4 @@
 import json
-import os
 from typing import Any
 
 import boto3
@@ -10,7 +9,6 @@ from domain.model.core.chunk import TextChunk
 from domain.model.utils.logging import app_logger
 from entrypoints.helpers.utils import CommandRegistry, get_error
 from entrypoints.models.api_model import ChunkerRequest
-from langchain_community.document_loaders import PyMuPDFLoader
 from pydantic import ValidationError
 
 logger = app_logger.get_logger()
@@ -19,27 +17,6 @@ s3 = boto3.client("s3")
 sns = boto3.client("sns")
 ddb = boto3.resource("dynamodb")
 CHUNK_BATCH_SIZE = 10
-
-
-def read_pdf_from_s3(bucket_name: str, object_key: str):
-    local_filename = "/tmp/temp.pdf"
-    # TODO: add try/catch
-    s3.download_file(bucket_name, object_key, local_filename)
-    print(f"Filesize: {os.path.getsize(local_filename)}")
-
-    # Use PyMuPDFLoader to load the PDF
-    loader = PyMuPDFLoader(local_filename)
-    pages = loader.load()
-    # Print the number of pages
-    print(f"The PDF has {len(pages)} pages.")
-    return pages
-
-
-def get_bucket_name(event: dict[str, Any]):
-    s3_obj = event["Records"][0]["s3"]
-    bucket_name = s3_obj["bucket"]["name"]
-    object_key = s3_obj["object"]["key"]
-    return bucket_name, object_key
 
 
 def save_chunk(chunk: TextChunk, table_name: str):
@@ -78,8 +55,6 @@ def handler(event: dict[str, Any], context: Any):
     chunks = chunker.chunk(location=downloaded_file, exam_code=exam_code)
     logger.debug(f"Chunks size: {len(chunks)}")
     logger.debug(chunks[33].to_dict())
-
-    # ADD a way to clean and combine chunks!
 
     # Save chunks in batch
     # Publish chunk topic in batches

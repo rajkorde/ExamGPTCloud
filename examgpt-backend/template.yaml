@@ -97,20 +97,6 @@ Resources:
           AttributeType: S
       TableName: !Sub ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-exam
 
-  # ChatPersistenceTable:
-  #   Type: AWS::DynamoDB::Table
-  #   Properties:
-  #     ProvisionedThroughput:
-  #       ReadCapacityUnits: 2
-  #       WriteCapacityUnits: 2
-  #     KeySchema:
-  #       - AttributeName: user_id
-  #         KeyType: HASH
-  #     AttributeDefinitions:
-  #       - AttributeName: user_id
-  #         AttributeType: S
-  #     TableName: !Sub ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-chatpersistence
-
   # TODO: switch billing mode to use the full free tier capacity
   ChunkTable:
     Type: AWS::DynamoDB::Table

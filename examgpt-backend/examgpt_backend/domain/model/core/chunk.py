@@ -15,7 +15,6 @@ class TextChunkState(Enum):
 class TextChunk:
     exam_code: str
     text: str
-    page_number: int | None
     state: TextChunkState = field(default=TextChunkState.CREATED)
     chunk_id: str = field(default_factory=lambda: str(uuid4()))
     last_updated: str = field(default_factory=get_current_time)
