@@ -19,7 +19,7 @@ class ChunkNotificationServiceSNS(ChunkNotificationService):
         self.sns = boto3.client("sns")
 
     def send_notification(self, chunk_ids: list[str]) -> bool:
-        message = {"chunk_ids": chunk_ids}
+        message = {"default": json.dumps({"chunk_ids": chunk_ids})}
 
         try:
             self.sns.publish(

@@ -21,14 +21,15 @@ def get_parameter(parameter_name: str, with_decryption: bool = True):
         )
         return str(response["Parameter"]["Value"])
     except ssm.exceptions.ParameterNotFound:
-        print(f"The parameter {parameter_name} was not found.")
+        logger.error(f"The parameter {parameter_name} was not found.")
         return None
     except Exception as e:
-        print(f"An error occurred: {str(e)}")
+        logger.error(f"An error occurred: {str(e)}")
         return None
 
 
 def handler(event: dict[str, Any], context: Any):
+    logger.debug(f"{event=}")
     message = "Generating QAs based on notifcation."
     logger.debug(message)
     # print(f"{event}")

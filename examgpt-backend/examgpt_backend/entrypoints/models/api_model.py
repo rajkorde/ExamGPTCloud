@@ -82,7 +82,7 @@ class ChunkerRequest(BaseModel):
         if not exam_code:
             return handle_error(event)
 
-        logger.debug(f"{bucket_name=}, {object_key=}, {exam_code=}")
+        # logger.debug(f"{bucket_name=}, {object_key=}, {exam_code=}")
 
         return ChunkerRequest(
             bucket_name=bucket_name, location=object_key, exam_code=exam_code

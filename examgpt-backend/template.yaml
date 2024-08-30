@@ -103,8 +103,8 @@ Resources:
     Properties:
       TableName: !Sub ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-chunk
       ProvisionedThroughput:
-        ReadCapacityUnits: 2
-        WriteCapacityUnits: 2
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
       KeySchema:
         - AttributeName: chunk_id
           KeyType: HASH
@@ -125,8 +125,8 @@ Resources:
           Projection:
             ProjectionType: ALL
           ProvisionedThroughput:
-            ReadCapacityUnits: 2
-            WriteCapacityUnits: 2
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
 
   # Rest APIs
   ExamGPTRestApi:

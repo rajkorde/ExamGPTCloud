@@ -19,31 +19,30 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     content_service = command_registry.get_content_service()
     exam_service = command_registry.get_exam_service()
 
-    logger.info(event)
-
+    # TODO: Check return types and handle error by returning geterror
     exam_request = CreateExamRequest.parse_event(event)
     if not exam_request:
         return get_error("Malformed request.", error_code=400)
 
+    logger.debug("Creating Exam.")
     exam = ExamService.create_exam(
         name=exam_request.exam_name,
         filenames=exam_request.filenames,
         exam_code=exam_request.exam_code,
     )
 
-    logger.debug("exam = " + str(exam))
+    logger.debug(f"Created Exam: {exam.exam_code}")
 
     signed_urls = create_upload_urls(
         CreateUploadURLs(sources=exam.sources), content_service
     )
 
-    logger.debug(f"{signed_urls=}")
-
-    logger.info("Saving Exam to DB")
+    logger.debug("Saving Exam.")
     response = save_exam(SaveExam(exam=exam), exam_service)
     if not response:
         return get_error(f"Could not save Exam: {exam.exam_code}")
 
+    logger.debug("Exam saved.")
     return {
         "statusCode": 200,
         "headers": {

@@ -18,7 +18,6 @@ CHUNK_BATCH_SIZE = 10
 
 
 def handler(event: dict[str, Any], context: Any):
-    print(event)
     logger.debug("Starting Chunking.")
     command_registry = CommandRegistry()
     content_service = command_registry.get_content_service()
@@ -38,14 +37,12 @@ def handler(event: dict[str, Any], context: Any):
         ),
         content_service=content_service,
     )
-    logger.debug(f"{downloaded_file=}")
 
     # Chunk file
     logger.debug("Chunking file.")
     chunker = SimplePDFChunker()
     chunks = chunker.chunk(location=downloaded_file, exam_code=exam_code)
     logger.debug(f"Chunks size: {len(chunks)}")
-    logger.debug(chunks[33].model_dump())
 
     # Save chunks in batch
     logger.debug("Saving chunks.")
@@ -83,42 +80,6 @@ def handler(event: dict[str, Any], context: Any):
             f"Error: Could not update state of the exam to f{ExamState.CHUNKED}"
         )
         return get_error()
-
-    # chunk_table = os.environ["CHUNK_TABLE"]
-    # if not chunk_table:
-    #     print("Error: Could not find chunk table in environment variables")
-
-    # message = "In Chunking code"
-    # print(f"{event=}")
-    # print(f"{message=}")
-
-    # bucket_name, object_key = get_bucket_name(event)
-    # print(f"{bucket_name}=")
-    # print(f"{object_key}=")
-
-    # folders = object_key.split("/")
-    # if len(folders) != 3:
-    #     print(
-    #         f"Error: the object key does not have the right folder structure: {object_key}"
-    #     )
-    # exam_id = folders[0]
-
-    # pages = read_pdf_from_s3(bucket_name, object_key)
-
-    # chunk_ids = []
-    # for i, page in enumerate(pages):
-    #     chunk = TextChunk(exam_id=exam_id, text=page.page_content, page_number=i)
-    #     chunk_ids.append(chunk.chunk_id)
-    #     save_chunk(chunk, chunk_table)
-
-    # topic_name = os.environ["CHUNK_TOPIC"]
-    # print(topic_name)
-
-    # sns.publish(
-    #     TopicArn=topic_name,
-    #     Message=json.dumps({"default": str(chunk_ids[:CHUNK_BATCH_SIZE])}),
-    #     MessageStructure="json",
-    # )
 
     logger.debug("Chunking complete.")
     return {

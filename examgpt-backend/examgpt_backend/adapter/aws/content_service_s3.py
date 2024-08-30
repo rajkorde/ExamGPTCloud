@@ -50,7 +50,7 @@ class ContentServiceS3(ContentService):
                 logger.error("No bucket name provided in an S3 event request")
                 raise InvalidEnvironmentSetup(CONTENT_BUCKET_ENV_VAR)
             self.s3.download_file(bucket_name, source, destination)
-            logger.debug(f"Filesize: {os.path.getsize(destination)}")
+            logger.debug(f"Downloaded filesize: {os.path.getsize(destination)}")
         except ClientError as e:
             logger.error(e)
             raise e

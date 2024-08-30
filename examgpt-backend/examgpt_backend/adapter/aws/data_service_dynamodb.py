@@ -4,7 +4,11 @@ import boto3
 from botocore.exceptions import BotoCoreError, ClientError
 from domain.model.core.chunk import TextChunk
 from domain.model.core.exam import Exam, ExamState
-from domain.model.utils.exceptions import InvalidEnvironmentSetup
+from domain.model.utils.exceptions import (
+    ExamAlreadyExists,
+    InvalidEnvironmentSetup,
+    InvalidExam,
+)
 from domain.model.utils.logging import app_logger
 from domain.model.utils.misc import get_env_var
 from domain.ports.data_service import ChunkService, ExamService
@@ -22,14 +26,29 @@ class ExamServiceDynamoDB(ExamService):
         self.ddb = boto3.resource("dynamodb")
         self.table = self.ddb.Table(table_name)
 
-    def put_exam(self, exam: Exam) -> bool:
+    def _check_exam_exists(self, key: dict[str, str]) -> bool:
+        try:
+            response = self.table.get_item(Key=key)
+            return "Item" in response
+        except ClientError as e:
+            logger.error(f"Error checking item existence: {e}")
+            return False
+
+    def put_exam(self, exam: Exam, overwrite: bool = False) -> bool:
         item = exam.model_dump()
         item["state"] = ExamState.SAVED.value
+
+        if not exam or not exam.exam_code:
+            raise InvalidExam()
+
+        if not overwrite:
+            if self._check_exam_exists({"exam_code": exam.exam_code}):
+                raise ExamAlreadyExists(var=exam.exam_code)
 
         try:
             self.table.put_item(
                 Item=item,
-                ConditionExpression="attribute_not_exists(exam_code)",
+                # ConditionExpression="attribute_not_exists(exam_code)",
             )
             logger.info(f"Exam saved successfully: {exam.exam_code}")
             return True
@@ -56,7 +75,7 @@ class ExamServiceDynamoDB(ExamService):
             return False
 
         exam.state = newstate
-        response = self.put_exam(exam)
+        response = self.put_exam(exam, overwrite=True)
         if not response:
             logger.error(f"Failed to update state for exam: {exam_code}")
             return False

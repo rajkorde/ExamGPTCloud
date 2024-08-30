@@ -51,9 +51,10 @@ class SimplePDFChunker:
             yield TextChunk(exam_code=exam_code, text=chunk)
 
     def chunk(self, location: str, exam_code: str) -> list[TextChunk]:
-        print(f"Starting PDF chunker: {location}")
         loader = PyMuPDFLoader(location)
         pages = loader.load()
-        print(f"parsing complete. The PDF has {len(pages)} pages.")
+        logger.debug(
+            f"Parsing complete for pdf file: {location}. The PDF has {len(pages)} pages."
+        )
 
         return list(self._combine_pages(pages, exam_code))
