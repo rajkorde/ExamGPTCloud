@@ -8,6 +8,7 @@ stage = "Stage"
 
 payload = {
     "exam_name": "AWS Solution Architect Associate Certification Exam",
+    "email": "GpCm8@example.com",
     "filenames": ["scripts/testdata/aws2.pdf"],
 }
 

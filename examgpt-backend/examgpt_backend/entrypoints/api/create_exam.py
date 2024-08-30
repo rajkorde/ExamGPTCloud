@@ -27,10 +27,10 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     logger.debug("Creating Exam.")
     exam = ExamService.create_exam(
         name=exam_request.exam_name,
+        email=exam_request.email,
         filenames=exam_request.filenames,
         exam_code=exam_request.exam_code,
     )
-
     logger.debug(f"Created Exam: {exam.exam_code}")
 
     signed_urls = create_upload_urls(

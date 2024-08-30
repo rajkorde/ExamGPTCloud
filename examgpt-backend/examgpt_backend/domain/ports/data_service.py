@@ -8,14 +8,17 @@ from domain.model.core.exam import Exam, ExamState
 
 class ExamService(ABC):
     @staticmethod
-    def create_exam(name: str, filenames: list[str], exam_code: str | None) -> Exam:
+    def create_exam(
+        name: str, email: str, filenames: list[str], exam_code: str | None
+    ) -> Exam:
         exam = (
             Exam(
                 name=name,
+                email=email,
                 exam_code=exam_code,
             )
             if exam_code
-            else Exam(name=name)
+            else Exam(name=name, email=email)
         )
 
         for filename in filenames:

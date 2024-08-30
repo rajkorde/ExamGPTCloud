@@ -4,13 +4,14 @@ import json
 from typing import Any, Optional
 
 from domain.model.utils.logging import app_logger
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 logger = app_logger.get_logger()
 
 
 class CreateExamRequest(BaseModel):
     exam_name: str = Field(description="Exam Name")
+    email: EmailStr = Field(description="Email of the exam creator")
     filenames: list[str] = Field(
         description="List of S3 locations with study material", default_factory=list
     )
@@ -34,10 +35,14 @@ class CreateExamRequest(BaseModel):
         if not filenames:
             logger.error("Invalid event specifiction: {event}")
             return None
+        email = body.get("email")
+        if not email:
+            logger.error("Invalid event specifiction: {event}")
+            return None
         exam_code = body.get("exam_code")
 
         return CreateExamRequest(
-            exam_name=exam_name, filenames=filenames, exam_code=exam_code
+            exam_name=exam_name, email=email, filenames=filenames, exam_code=exam_code
         )
 
 
