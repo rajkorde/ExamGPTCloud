@@ -9,11 +9,6 @@ from pydantic import BaseModel, Field
 logger = app_logger.get_logger()
 
 
-def handle_error(event: dict[str, Any]):
-    logger.error("Invalid event specifiction: {event}")
-    return None
-
-
 class CreateExamRequest(BaseModel):
     exam_name: str = Field(description="Exam Name")
     filenames: list[str] = Field(
@@ -24,23 +19,38 @@ class CreateExamRequest(BaseModel):
     @staticmethod
     def parse_event(
         event: dict[str, Any],
-    ) -> CreateExamRequest | None:
+    ) -> Optional[CreateExamRequest]:
         body_str = event.get("body")
         if not body_str:
-            return handle_error(event)
+            logger.error("Invalid event specifiction: {event}")
+            return None
         body = json.loads(body_str)
 
         exam_name = body.get("exam_name")
         if not exam_name:
-            return handle_error(event)
+            logger.error("Invalid event specifiction: {event}")
+            return None
         filenames = body.get("filenames")
         if not filenames:
-            return handle_error(event)
+            logger.error("Invalid event specifiction: {event}")
+            return None
         exam_code = body.get("exam_code")
 
         return CreateExamRequest(
             exam_name=exam_name, filenames=filenames, exam_code=exam_code
         )
+
+
+class GenerateQARequest(BaseModel):
+    chunk_ids: list[str] = Field(description="List of Chunk IDs")
+
+    @staticmethod
+    def parse_event(event: dict[str, Any]) -> Optional[GenerateQARequest]:
+        chunk_ids = eval(event["Records"][0]["Sns"]["Message"])
+        if not chunk_ids or not isinstance(chunk_ids, list):
+            logger.error("Invalid event specifiction: {event}")
+            return None
+        return GenerateQARequest(chunk_ids=chunk_ids)
 
 
 class ChunkerRequest(BaseModel):
@@ -72,15 +82,17 @@ class ChunkerRequest(BaseModel):
     @staticmethod
     def parse_event(
         event: dict[str, Any],
-    ) -> ChunkerRequest | None:
+    ) -> Optional[ChunkerRequest]:
         response = ChunkerRequest._get_bucket_name(event)
         if not response:
-            return handle_error(event)
+            logger.error("Invalid event specifiction: {event}")
+            return None
 
         bucket_name, object_key = response
         exam_code = ChunkerRequest._get_exam_code(object_key)
         if not exam_code:
-            return handle_error(event)
+            logger.error("Invalid event specifiction: {event}")
+            return None
 
         # logger.debug(f"{bucket_name=}, {object_key=}, {exam_code=}")
 

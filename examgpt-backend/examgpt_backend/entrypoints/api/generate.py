@@ -4,6 +4,8 @@ from typing import Any
 
 import boto3
 from domain.model.utils.logging import app_logger
+from entrypoints.helpers.utils import CommandRegistry, get_error
+from entrypoints.models.api_model import GenerateQARequest
 
 # from ai.model_providers
 # logger = app_logger.get_logger()
@@ -32,7 +34,31 @@ def handler(event: dict[str, Any], context: Any):
     logger.debug(f"{event=}")
     message = "Generating QAs based on notifcation."
     logger.debug(message)
-    # print(f"{event}")
+
+    # parse request (Get all chunks)
+    chunk_ids = GenerateQARequest.parse_event(event)
+    if not chunk_ids:
+        logger.error("Error: Could not parse event")
+        return get_error()
+
+    # get all chunks, ensure all chunks exist and the state is not processed
+
+    # Create QA objects for each chunk, if not already created
+    ## Get OpenAI key
+    ## Create OpenAI model
+    ## Create QA objects
+
+    # Update Chunk states
+
+    # Save QA objects to DynamoDB
+
+    # Update Chunk states
+
+    # Update Exam state
+
+    # Notify validator lambda
+
+    # return 200
 
     chunk_table = os.environ["CHUNK_TABLE"]
     if not chunk_table:
