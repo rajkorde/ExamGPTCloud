@@ -2,7 +2,7 @@ from typing import Optional
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
-from domain.model.core.chunk import TextChunk
+from domain.model.core.chunk import TextChunk, TextChunkState
 from domain.model.core.exam import Exam, ExamState
 from domain.model.utils.exceptions import (
     ExamAlreadyExists,
@@ -102,3 +102,28 @@ class ChunkServiceDynamoDB(ChunkService):
             logger.error(f"Validation error: {e}")
             return False
         return True
+
+    def get_chunks(self, chunk_ids: list[str]) -> Optional[list[TextChunk]]:
+        try:
+            response = self.table.batch_get_item(
+                RequestItems={
+                    self.table.name: {
+                        "Keys": [{"chunk_id": chunk_id} for chunk_id in chunk_ids]
+                    }
+                }
+            )
+
+            if response.get("UnprocessedKeys"):
+                logger.error(f"Unprocessed keys: {response.get('UnprocessedKeys')}")
+                return None
+            items = response["Responses"][self.table.name]
+            items = [
+                (lambda item: item.update({"state": TextChunkState(item["state"])}))(
+                    item
+                )
+                for item in items
+            ]
+            return [TextChunk(**item) for item in items]
+        except (ClientError, BotoCoreError) as e:
+            logger.error(f"Error retrieving chunk items with keys {chunk_ids}: {e}")
+            return None

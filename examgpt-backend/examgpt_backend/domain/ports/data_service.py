@@ -37,3 +37,6 @@ class ExamService(ABC):
 class ChunkService(ABC):
     @abstractmethod
     def save_chunks(self, chunks: list[TextChunk]) -> bool: ...
+
+    @abstractmethod
+    def get_chunks(self, chunk_ids: list[str]) -> Optional[list[TextChunk]]: ...

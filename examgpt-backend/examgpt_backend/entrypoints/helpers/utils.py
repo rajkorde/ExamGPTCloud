@@ -29,6 +29,17 @@ def get_error(
     }
 
 
+def get_success(message: str = "OK") -> dict[str, Any]:
+    return {
+        "statusCode": 200,
+        "body": json.dumps(
+            {
+                "message": "OK",
+            }
+        ),
+    }
+
+
 class CommandRegistry:
     _command_registry = {
         "AWS": {

@@ -1,10 +1,11 @@
-import json
 import os
 from typing import Any
 
 import boto3
+from domain.command_handlers.chunks_commands_handler import get_chunks
+from domain.commands.chunks_commands import GetChunks
 from domain.model.utils.logging import app_logger
-from entrypoints.helpers.utils import CommandRegistry, get_error
+from entrypoints.helpers.utils import CommandRegistry, get_error, get_success
 from entrypoints.models.api_model import GenerateQARequest
 
 # from ai.model_providers
@@ -35,13 +36,26 @@ def handler(event: dict[str, Any], context: Any):
     message = "Generating QAs based on notifcation."
     logger.debug(message)
 
+    command_registry = CommandRegistry()
+    chunk_service = command_registry.get_chunk_service()
+
     # parse request (Get all chunks)
-    chunk_ids = GenerateQARequest.parse_event(event)
-    if not chunk_ids:
+    qa_request = GenerateQARequest.parse_event(event)
+    if not qa_request:
         logger.error("Error: Could not parse event")
         return get_error()
 
+    chunk_ids = qa_request.chunk_ids
+    if not len(chunk_ids):
+        logger.debug("No chunks ids found in message.")
+        return get_success("Nothing to process.")
+
     # get all chunks, ensure all chunks exist and the state is not processed
+    chunks = get_chunks(GetChunks(chunk_ids=chunk_ids), chunk_service=chunk_service)
+    if not chunks:
+        logger.error("Error: Could not get chunks")
+        return get_error()
+    logger.debug(f"{chunks=}")
 
     # Create QA objects for each chunk, if not already created
     ## Get OpenAI key
@@ -90,11 +104,4 @@ def handler(event: dict[str, Any], context: Any):
     # response = chat.invoke(messages)
     # print(response.content)
 
-    return {
-        "statusCode": 200,
-        "body": json.dumps(
-            {
-                "message": "OK",
-            }
-        ),
-    }
+    return get_success()

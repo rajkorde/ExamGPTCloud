@@ -6,5 +6,9 @@ class SaveChunks(BaseModel):
     chunks: list[TextChunk]
 
 
+class GetChunks(BaseModel):
+    chunk_ids: list[str]
+
+
 class NotifyChunks(BaseModel):
     chunk_ids: list[str]
