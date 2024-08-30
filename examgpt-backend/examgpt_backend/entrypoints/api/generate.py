@@ -3,8 +3,13 @@ from typing import Any
 import boto3
 from domain.command_handlers.chunks_commands_handler import get_chunks
 from domain.command_handlers.environments_commands_handler import get_parameter
+from domain.command_handlers.questions_commands_handler import (
+    create_flash_cards,
+    create_multiple_choices,
+)
 from domain.commands.chunks_commands import GetChunks
 from domain.commands.environment_commands import GetParameter
+from domain.commands.questions_commands import CreateFlashCard, CreateMultipleChoice
 from domain.model.utils.logging import app_logger
 from entrypoints.helpers.utils import CommandRegistry, get_error, get_success
 from entrypoints.models.api_model import GenerateQARequest
@@ -26,6 +31,7 @@ def handler(event: dict[str, Any], context: Any):
     command_registry = CommandRegistry()
     chunk_service = command_registry.get_chunk_service()
     environment_service = command_registry.get_environment_service()
+    ai_service = command_registry.get_ai_service()
 
     # parse request (Get all chunks)
     qa_request = GenerateQARequest.parse_event(event)
@@ -43,7 +49,12 @@ def handler(event: dict[str, Any], context: Any):
     if not chunks:
         logger.error("Error: Could not get chunks")
         return get_error()
-    logger.debug(f"{chunks=}")
+    logger.debug(f"{len(chunks)=}")
+    # Ensure exam codes in all text chunks are the same
+    assert all(
+        chunk.exam_code == chunks[0].exam_code for chunk in chunks
+    ), "Not all values in the list are the same"
+    exam_code = chunks[0].exam_code
 
     # Create QA objects for each chunk, if not already created
     ## Get OpenAI key
@@ -55,8 +66,19 @@ def handler(event: dict[str, Any], context: Any):
         return get_error()
     logger.debug(f"{openai_key=}")
 
-    ## Create OpenAI model
     ## Create QA objects
+    flash_cards = create_flash_cards(
+        [CreateFlashCard(chunk=chunk, exam_code=exam_code) for chunk in chunks],
+        ai_service,
+    )
+
+    multiple_choices = create_multiple_choices(
+        [CreateMultipleChoice(chunk=chunk, exam_code=exam_code) for chunk in chunks],
+        ai_service,
+    )
+
+    assert flash_cards
+    assert multiple_choices
 
     # Update Chunk states
 

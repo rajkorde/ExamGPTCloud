@@ -97,7 +97,6 @@ Resources:
           AttributeType: S
       TableName: !Sub ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-exam
 
-  # TODO: switch billing mode to use the full free tier capacity
   ChunkTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -121,6 +120,36 @@ Resources:
             - AttributeName: exam_code
               KeyType: HASH
             - AttributeName: chunk_id
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL
+          ProvisionedThroughput:
+            ReadCapacityUnits: 5
+            WriteCapacityUnits: 5
+
+  QATable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-qa
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      KeySchema:
+        - AttributeName: qa_id
+          KeyType: HASH
+        - AttributeName: exam_code
+          KeyType: RANGE
+      AttributeDefinitions:
+        - AttributeName: qa_id
+          AttributeType: S
+        - AttributeName: exam_code
+          AttributeType: S
+      GlobalSecondaryIndexes:
+        - IndexName: ExamIndex
+          KeySchema:
+            - AttributeName: exam_code
+              KeyType: HASH
+            - AttributeName: qa_id
               KeyType: RANGE
           Projection:
             ProjectionType: ALL

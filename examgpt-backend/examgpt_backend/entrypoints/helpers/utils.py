@@ -2,12 +2,14 @@ import json
 import os
 from typing import Any
 
+from adapter.ai.ai_service_ext import AIServiceExt
 from adapter.aws.content_service_s3 import ContentServiceS3
 from adapter.aws.data_service_dynamodb import ChunkServiceDynamoDB, ExamServiceDynamoDB
 from adapter.aws.environment_service_ssm import EnvironmentServiceSSM
 from adapter.aws.notification_service_sns import ChunkNotificationServiceSNS
 from domain.model.utils.exceptions import InvalidEnvironmentSetup
 from domain.model.utils.logging import app_logger
+from domain.ports.ai_service import AIService
 from domain.ports.content_service import ContentService
 from domain.ports.data_service import ChunkService, ExamService
 from domain.ports.environment_service import EnvironmentService
@@ -43,11 +45,12 @@ def get_success(message: str = "OK") -> dict[str, Any]:
 class CommandRegistry:
     _command_registry = {
         "AWS": {
-            "ContenService": ContentServiceS3,
+            "ContentService": ContentServiceS3,
             "ExamService": ExamServiceDynamoDB,
             "EnvironmentService": EnvironmentServiceSSM,
             "ChunkService": ChunkServiceDynamoDB,
             "ChunkNotificationService": ChunkNotificationServiceSNS,
+            "AIService": AIServiceExt,
         }
     }
 
@@ -59,7 +62,7 @@ class CommandRegistry:
 
     def get_content_service(self) -> ContentService:
         service = CommandRegistry._command_registry[str(self.location)][
-            "ContenService"
+            "ContentService"
         ]()
         assert isinstance(service, ContentService)
         return service
@@ -88,4 +91,9 @@ class CommandRegistry:
             "ChunkNotificationService"
         ]()
         assert isinstance(service, ChunkNotificationService)
+        return service
+
+    def get_ai_service(self) -> AIService:
+        service = CommandRegistry._command_registry[str(self.location)]["AIService"]()
+        assert isinstance(service, AIService)
         return service
