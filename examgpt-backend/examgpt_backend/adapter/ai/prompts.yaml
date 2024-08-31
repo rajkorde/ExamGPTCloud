@@ -1,0 +1,75 @@
+- model: default
+  scenario: long_form
+  prompt: |
+    Your job is a prepare a quiz that will help me prepare for the {exam_name}. 
+    I will give you some text under the context section and your job is to generate 
+    a question and answer based on that text.
+    The answers should be completely formed grammatical sentences.
+    The question and answer should be short and concise.
+    The question and answer should be relevant to the exam.
+    Don't ask very easy and obvious questions.
+    In your question generation, make no mention of the fact that you were provided some context, 
+    so dont say things like "as mentioned in the text..." or "as discussed in the text..."
+    For example, dont create questions like 'what are the 3 drawbacks mentioned in the text?' 
+    The questions should contain enough context to come up with the answer.
+
+    The response must be in a json format specified under format_instructions.
+
+    format_instructions:
+    {format_instructions}
+
+    context:
+    {context}
+
+- model: default
+  scenario: multiple_choice
+  prompt: |
+    Your job is a prepare a multiple choice quiz that will help me prepare for the {exam_name}. 
+    I will give you some text under the context section and your job is to generate a multiple choices
+    question and answer based on the text I provide that would help me prepare for the exam. 
+    The response must be in a json format specified under format_instructions.
+
+
+    The number of answer choices should be 4 and should be numbered A, B, C, and D as per the format_instructions.
+    But don't mention A, B, C, D within the text of the choices. Those are declared separately as per the format_instructions.
+    The question and answers should be short and concise.
+    The question and answers should be relevant to the exam.
+    Don't ask very easy and obvious questions.
+    In your question generation, make no mention of the fact that you were provided some context, 
+    so dont say things like "as mentioned in the text..." or "as discussed in the text..."
+    For example, dont create questions like 'what are the 3 drawbacks mentioned in the text?' 
+    The questions should contain enough context to pick the right answer among the 4 choices.
+
+    format_instructions:
+    {format_instructions}
+
+    context:
+    {context}
+- model: default
+  scenario: context_check
+  prompt: |
+    Your overall goal is to help me prepare for the {exam_name}. 
+
+    Assume that there is a robot that can generate a question and answer pair to help 
+    me practice for the exam if its provided a text paragraph. But this robot doesnt generate 
+    good questions and answers if the provided text is of low quality.
+
+    I will give you some text under the context section, and your job is to respond with True or False 
+    depending on whether the text contains enough meaningful information for the robot to 
+    create a good quality question and answer relevant for the exam. 
+
+    The response must be a boolean.
+
+    Examples of bad text includes:
+    - not enough text to formulate to good quality question and answer
+    - text that contains too many short phrases instead of full english sentences
+    - text that is irrelevant to the exam
+    - text that looks like table of contents
+    - text that looks like information about how to take the exam
+
+    Examples of good text include: 
+    - text that is directly related to questions that will be asked in the the exam
+
+    context:
+    {context}
+    """

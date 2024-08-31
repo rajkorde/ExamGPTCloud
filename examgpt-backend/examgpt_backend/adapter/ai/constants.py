@@ -1,6 +1,13 @@
 from enum import Enum
 
 
+class Scenario(Enum):
+    LONGFORM = "long_form"
+    MULTIPLECHOICE = "multiple_choice"
+    ANSWER = "answer"
+    CONTEXTCHECK = "context_check"
+
+
 class ModelFamily(Enum):
     OPENAI = "openai"
     OLLAMA = "ollama"
