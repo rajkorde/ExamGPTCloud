@@ -1,3 +1,10 @@
+from adapter.ai.base import ModelConfig, ModelProvider
+from adapter.ai.constants import Scenario
+from adapter.ai.prompts import PromptProvider
+from domain.model.core.chunk import TextChunk
+from domain.model.core.question import FlashCard, MultipleChoice
+from domain.model.utils.exceptions import NotEnoughInformationInContext, PromptNotFound
+from domain.model.utils.logging import app_logger
 from langchain.output_parsers import BooleanOutputParser, PydanticOutputParser
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_core.prompts import PromptTemplate
@@ -8,11 +15,7 @@ from tenacity import (
     wait_random_exponential,
 )
 
-from examgpt.ai.base import ModelConfig, ModelProvider
-from examgpt.ai.prompts import PromptProvider
-from examgpt.core.exceptions import NotEnoughInformationInContext, PromptNotFound
-from examgpt.core.question import LongForm, MultipleChoice, Scenario
-from examgpt.sources.chunkers.base import TextChunk
+logger = app_logger.get_logger()
 
 
 class AIModel:
@@ -63,11 +66,12 @@ class AIModel:
         retry=retry_if_not_exception_type(NotEnoughInformationInContext),
         reraise=True,
     )
-    def generate_longform_qa(self, chunk: TextChunk, exam_name: str) -> LongForm:
-        scenario, model = Scenario.LONGFORM, self.model_name
+    def generate_flashcard_qa(self, chunk: TextChunk, exam_name: str) -> FlashCard:
+        scenario, model = Scenario.FLASHCARD, self.model_name
 
         if not self._context_check(chunk=chunk.text, exam_name=exam_name):
-            raise NotEnoughInformationInContext(chunk.id)
+            logger.warning("Not enough information in context")
+            raise NotEnoughInformationInContext(chunk.chunk_id)
 
         prompt = self._prompt_provider.get_prompt(scenario=scenario, model=model)
         if prompt is None:
@@ -75,7 +79,7 @@ class AIModel:
                 f"Prompt not found. Scenario: {scenario}, model: {model}"
             )
 
-        parser = PydanticOutputParser(pydantic_object=LongForm)
+        parser = PydanticOutputParser(pydantic_object=FlashCard)
         prompt = PromptTemplate(
             template=prompt,
             input_variables=["exam_name", "context"],
@@ -101,7 +105,7 @@ class AIModel:
         scenario, model = Scenario.MULTIPLECHOICE, self.model_name
 
         if not self._context_check(chunk=chunk.text, exam_name=exam_name):
-            raise NotEnoughInformationInContext(chunk.id)
+            raise NotEnoughInformationInContext(chunk.chunk_id)
 
         prompt = self._prompt_provider.get_prompt(scenario=scenario, model=model)
         if prompt is None:

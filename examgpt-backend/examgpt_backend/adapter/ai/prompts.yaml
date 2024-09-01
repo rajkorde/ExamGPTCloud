@@ -1,5 +1,5 @@
 - model: default
-  scenario: long_form
+  scenario: flash_card
   prompt: |
     Your job is a prepare a quiz that will help me prepare for the {exam_name}. 
     I will give you some text under the context section and your job is to generate 

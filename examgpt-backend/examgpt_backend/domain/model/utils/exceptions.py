@@ -30,3 +30,21 @@ class InvalidExam(BaseException):
     def __init__(self):
         message: str = "Exam does not have exam code."
         super().__init__(message=message)
+
+
+class PromptNotFound(BaseException):
+    """Raised when prompt for a scenario is not found"""
+
+    def __init__(self, message: str = "Prompt not found"):
+        super().__init__(message=message)
+
+
+class NotEnoughInformationInContext(BaseException):
+    """Raised when provided text chunk does not have enough information to create a question"""
+
+    def __init__(
+        self,
+        chunk_id: str,
+    ):
+        message: str = f"Text chunk does not have enough information to create a question: {chunk_id}"
+        super().__init__(message=message)

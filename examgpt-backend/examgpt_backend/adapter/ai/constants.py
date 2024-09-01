@@ -2,7 +2,7 @@ from enum import Enum
 
 
 class Scenario(Enum):
-    LONGFORM = "long_form"
+    FLASHCARD = "flash_card"
     MULTIPLECHOICE = "multiple_choice"
     ANSWER = "answer"
     CONTEXTCHECK = "context_check"
