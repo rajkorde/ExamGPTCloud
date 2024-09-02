@@ -1,16 +1,8 @@
-from enum import Enum
 from uuid import uuid4
 
 from codenamize import codenamize  # type: ignore
 from domain.model.utils.misc import get_current_time
 from langchain_core.pydantic_v1 import BaseModel, Field
-
-
-class AnswerOption(Enum):
-    A = "A"
-    B = "B"
-    C = "C"
-    D = "D"
 
 
 class FlashCard(BaseModel):
@@ -48,6 +40,7 @@ class MultipleChoice(BaseModel):
 class FlashCardEnhanced(FlashCard):
     chunk_id: str
     exam_code: str
+    type: str = Field(default="flashcard")
     qa_id: str = Field(default_factory=lambda: codenamize(str(uuid4())))
     last_updated: str = Field(default_factory=get_current_time)
 
@@ -55,5 +48,6 @@ class FlashCardEnhanced(FlashCard):
 class MultipleChoiceEnhanced(MultipleChoice):
     chunk_id: str
     exam_code: str
+    type: str = Field(default="multiplechoice")
     qa_id: str = Field(default_factory=lambda: codenamize(str(uuid4())))
     last_updated: str = Field(default_factory=get_current_time)

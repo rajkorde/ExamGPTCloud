@@ -3,15 +3,21 @@ import os
 from typing import Any
 
 from adapter.ai.ai_service_ext import AIServiceExt
+from adapter.ai.model_providers.openai import OpenAIProvider
 from adapter.aws.content_service_s3 import ContentServiceS3
-from adapter.aws.data_service_dynamodb import ChunkServiceDynamoDB, ExamServiceDynamoDB
+from adapter.aws.data_service_dynamodb import (
+    ChunkServiceDynamoDB,
+    ExamServiceDynamoDB,
+    QAServiceDynamodb,
+)
 from adapter.aws.environment_service_ssm import EnvironmentServiceSSM
 from adapter.aws.notification_service_sns import ChunkNotificationServiceSNS
+from domain.ai.base import BaseModelProvider
 from domain.model.utils.exceptions import InvalidEnvironmentSetup
 from domain.model.utils.logging import app_logger
 from domain.ports.ai_service import AIService
 from domain.ports.content_service import ContentService
-from domain.ports.data_service import ChunkService, ExamService
+from domain.ports.data_service import ChunkService, ExamService, QAService
 from domain.ports.environment_service import EnvironmentService
 from domain.ports.notification_service import ChunkNotificationService
 
@@ -51,6 +57,8 @@ class CommandRegistry:
             "ChunkService": ChunkServiceDynamoDB,
             "ChunkNotificationService": ChunkNotificationServiceSNS,
             "AIService": AIServiceExt,
+            "ModelProvider": OpenAIProvider,
+            "QAService": QAServiceDynamodb,
         }
     }
 
@@ -96,4 +104,16 @@ class CommandRegistry:
     def get_ai_service(self) -> AIService:
         service = CommandRegistry._command_registry[str(self.location)]["AIService"]()
         assert isinstance(service, AIService)
+        return service
+
+    def get_model_provider(self) -> BaseModelProvider:
+        model_provider = CommandRegistry._command_registry[str(self.location)][
+            "ModelProvider"
+        ]()
+        assert isinstance(model_provider, BaseModelProvider)
+        return model_provider
+
+    def get_qa_service(self) -> QAService:
+        service = CommandRegistry._command_registry[str(self.location)]["QAService"]()
+        assert isinstance(service, QAService)
         return service

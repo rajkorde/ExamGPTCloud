@@ -224,9 +224,12 @@ Resources:
       Environment:
         Variables:
           CHUNK_TABLE: !Ref ChunkTable
+          QA_TABLE: !Ref QATable
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref ChunkTable
+            TableName:
+              - !Ref ChunkTable
+              - !Ref QATable
         - Statement:
             - Action:
                 - ssm:GetParameter

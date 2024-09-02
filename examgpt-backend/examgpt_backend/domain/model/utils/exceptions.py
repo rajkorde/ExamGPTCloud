@@ -48,3 +48,11 @@ class NotEnoughInformationInContext(BaseException):
     ):
         message: str = f"Text chunk does not have enough information to create a question: {chunk_id}"
         super().__init__(message=message)
+
+
+class NotEnoughQuestionsInExam(BaseException):
+    """Raised when there are not enough questions in an exam"""
+
+    def __init__(self, exam_code: str):
+        message: str = f"Not enough questions in exam: {exam_code}"
+        super().__init__(message=message)

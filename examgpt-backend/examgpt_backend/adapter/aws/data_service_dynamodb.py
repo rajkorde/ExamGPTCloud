@@ -1,17 +1,21 @@
-from typing import Optional
+import random
+from typing import Any, Optional
 
 import boto3
+from boto3.dynamodb.conditions import Key
 from botocore.exceptions import BotoCoreError, ClientError
 from domain.model.core.chunk import TextChunk, TextChunkState
 from domain.model.core.exam import Exam, ExamState
+from domain.model.core.question import FlashCardEnhanced, MultipleChoiceEnhanced
 from domain.model.utils.exceptions import (
     ExamAlreadyExists,
     InvalidEnvironmentSetup,
     InvalidExam,
+    NotEnoughQuestionsInExam,
 )
 from domain.model.utils.logging import app_logger
 from domain.model.utils.misc import get_env_var
-from domain.ports.data_service import ChunkService, ExamService
+from domain.ports.data_service import ChunkService, ExamService, QAService
 from pydantic import ValidationError
 
 logger = app_logger.get_logger()
@@ -127,3 +131,88 @@ class ChunkServiceDynamoDB(ChunkService):
         except (ClientError, BotoCoreError) as e:
             logger.error(f"Error retrieving chunk items with keys {chunk_ids}: {e}")
             return None
+
+
+class QAServiceDynamodb(QAService):
+    def __init__(self):
+        QA_TABLE_ENV_VAR: str = "QA_TABLE"
+        table_name = get_env_var(QA_TABLE_ENV_VAR)
+        if not table_name:
+            raise InvalidEnvironmentSetup(QA_TABLE_ENV_VAR)
+        self.ddb = boto3.resource("dynamodb")
+        self.table = self.ddb.Table(table_name)
+
+    def save_flashcards(self, flashcards: list[FlashCardEnhanced]) -> bool:
+        try:
+            with self.table.batch_writer() as batch:
+                for flashcard in flashcards:
+                    item = flashcard.dict()
+                    batch.put_item(Item=item)
+        except ValidationError as e:
+            logger.error(f"Validation error: {e}")
+            return False
+        return True
+
+    def save_multiplechoices(
+        self, multiplechoices: list[MultipleChoiceEnhanced]
+    ) -> bool:
+        try:
+            with self.table.batch_writer() as batch:
+                for multiplechoice in multiplechoices:
+                    item = multiplechoice.dict()
+                    batch.put_item(Item=item)
+        except ValidationError as e:
+            logger.error(f"Validation error: {e}")
+            return False
+        return True
+
+    def get_items_by_exam_code(self, exam_code: str) -> Optional[list[dict[str, Any]]]:
+        try:
+            response = self.table.query(
+                KeyConditionExpression=Key("exam_code").eq(exam_code),
+            )
+        except (ClientError, BotoCoreError) as e:
+            logger.error(f"Error retrieving items with exam code {exam_code}: {e}")
+            return None
+
+        return response.get("Items", [])
+
+    def get_flashcards(
+        self, exam_code: str, n: int = 0
+    ) -> Optional[list[FlashCardEnhanced]]:
+        items = self.get_items_by_exam_code(exam_code)
+
+        if not items:
+            return None
+
+        flashcards = [
+            FlashCardEnhanced(**item) for item in items if item["type"] == "flashcard"
+        ]
+
+        if n > len(flashcards):
+            logger.warning(f"Requested {n} flashcards but only {len(flashcards)} found")
+            raise NotEnoughQuestionsInExam(exam_code=exam_code)
+
+        return random.sample(flashcards, n) if n > 0 else flashcards
+
+    def get_multiplechoices(
+        self, exam_code: str, n: int = 0
+    ) -> Optional[list[MultipleChoiceEnhanced]]:
+        items = self.get_items_by_exam_code(exam_code)
+
+        if not items:
+            return None
+
+        multiplechoices = [
+            MultipleChoiceEnhanced(**item)
+            for item in items
+            if item["type"] == "multiplechoice"
+        ]
+
+        if n > len(multiplechoices):
+            logger.warning(
+                f"Requested {n} multiple choice questions but only {len(multiplechoices)} found"
+            )
+            raise NotEnoughQuestionsInExam(exam_code=exam_code)
+
+        return random.sample(multiplechoices, n) if n > 0 else multiplechoices

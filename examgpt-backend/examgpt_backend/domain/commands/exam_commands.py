@@ -9,3 +9,7 @@ class SaveExam(BaseModel):
 class UpdateExamState(BaseModel):
     exam_code: str
     state: ExamState
+
+
+class GetExam(BaseModel):
+    exam_code: str

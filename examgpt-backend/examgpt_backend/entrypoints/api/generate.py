@@ -3,13 +3,22 @@ from typing import Any
 import boto3
 from domain.command_handlers.chunks_commands_handler import get_chunks
 from domain.command_handlers.environments_commands_handler import get_parameter
+from domain.command_handlers.exam_commands_handler import get_exam
 from domain.command_handlers.questions_commands_handler import (
     create_flash_cards,
     create_multiple_choices,
+    save_flashcards,
+    save_multiplechoices,
 )
 from domain.commands.chunks_commands import GetChunks
 from domain.commands.environment_commands import GetParameter
-from domain.commands.questions_commands import CreateFlashCard, CreateMultipleChoice
+from domain.commands.exam_commands import GetExam
+from domain.commands.questions_commands import (
+    CreateFlashCard,
+    CreateMultipleChoice,
+    SaveFlashCards,
+    SaveMultipleChoices,
+)
 from domain.model.utils.logging import app_logger
 from entrypoints.helpers.utils import CommandRegistry, get_error, get_success
 from entrypoints.models.api_model import GenerateQARequest
@@ -32,6 +41,9 @@ def handler(event: dict[str, Any], context: Any):
     chunk_service = command_registry.get_chunk_service()
     environment_service = command_registry.get_environment_service()
     ai_service = command_registry.get_ai_service()
+    exam_service = command_registry.get_exam_service()
+    model_provider = command_registry.get_model_provider()
+    qa_service = command_registry.get_qa_service()
 
     # parse request (Get all chunks)
     qa_request = GenerateQARequest.parse_event(event)
@@ -56,6 +68,14 @@ def handler(event: dict[str, Any], context: Any):
     ), "Not all values in the list are the same"
     exam_code = chunks[0].exam_code
 
+    # get exam
+    exam = get_exam(GetExam(exam_code=exam_code), exam_service=exam_service)
+    if not exam:
+        logger.error("Error: Could not get exam")
+        return get_error()
+    logger.debug(f"{exam=}")
+    exam_name = exam.name
+
     # Create QA objects for each chunk, if not already created
     ## Get OpenAI key
     openai_key = get_parameter(
@@ -68,19 +88,54 @@ def handler(event: dict[str, Any], context: Any):
 
     ## Create QA objects
     flash_cards = create_flash_cards(
-        [CreateFlashCard(chunk=chunk, exam_code=exam_code) for chunk in chunks],
+        [
+            CreateFlashCard(
+                chunk=chunk,
+                exam_code=exam_code,
+                exam_name=exam_name,
+                model_provider=model_provider,
+            )
+            for chunk in chunks
+        ],
         ai_service,
     )
 
     multiple_choices = create_multiple_choices(
-        [CreateMultipleChoice(chunk=chunk, exam_code=exam_code) for chunk in chunks],
+        [
+            CreateMultipleChoice(
+                chunk=chunk,
+                exam_code=exam_code,
+                exam_name=exam_name,
+                model_provider=model_provider,
+            )
+            for chunk in chunks
+        ],
         ai_service,
     )
+
+    if (
+        not flash_cards
+        or not len(flash_cards)
+        or not multiple_choices
+        or not len(multiple_choices)
+    ):
+        logger.warning("Could not create any QA objects for chunks")
+        return get_error()
 
     assert flash_cards
     assert multiple_choices
 
     # Save QA objects to DynamoDB
+    flashcard_response = save_flashcards(
+        SaveFlashCards(flash_cards=flash_cards), qa_service
+    )
+    multiplechoice_response = save_multiplechoices(
+        SaveMultipleChoices(multiple_choices=multiple_choices),
+        qa_service,
+    )
+    if not flashcard_response or not multiplechoice_response:
+        logger.error("Error: Could not save QA objects")
+        return get_error()
 
     # Update Chunk states
 

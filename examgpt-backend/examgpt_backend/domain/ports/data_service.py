@@ -4,6 +4,7 @@ from typing import Optional
 
 from domain.model.core.chunk import TextChunk
 from domain.model.core.exam import Exam, ExamState
+from domain.model.core.question import FlashCardEnhanced, MultipleChoiceEnhanced
 
 
 class ExamService(ABC):
@@ -43,3 +44,25 @@ class ChunkService(ABC):
 
     @abstractmethod
     def get_chunks(self, chunk_ids: list[str]) -> Optional[list[TextChunk]]: ...
+
+
+class QAService(ABC):
+    @abstractmethod
+    def save_flashcards(self, flashcards: list[FlashCardEnhanced]) -> bool: ...
+
+    @abstractmethod
+    def save_multiplechoices(
+        self, multiplechoices: list[MultipleChoiceEnhanced]
+    ) -> bool: ...
+
+    @abstractmethod
+    # Get n flashcards. If n is 0, return all
+    def get_flashcards(
+        self, exam_code: str, n: int = 0
+    ) -> Optional[list[FlashCardEnhanced]]: ...
+
+    @abstractmethod
+    # Get n multiple choice questions. If n is 0, return all
+    def get_multiplechoices(
+        self, exam_code: str, n: int = 0
+    ) -> Optional[list[MultipleChoiceEnhanced]]: ...
