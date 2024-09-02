@@ -1,28 +1,21 @@
 from dataclasses import dataclass, field
+from enum import Enum
 
-from ai.base import ModelConfig, ModelProvider
-from ai.constants import ModelFamily, ModelName
+from adapter.ai.constants import ModelFamily, ModelName
+from domain.ai.base import BaseModelProvider
 from langchain_openai import ChatOpenAI
 
 
 @dataclass
-class OpenAIConfig(ModelConfig):
-    family: ModelFamily = field(default=ModelFamily.OPENAI)
-    name: ModelName = field(default=ModelName.GPT4OMINI)
+class OpenAIProvider(BaseModelProvider):
+    model_family: Enum = field(default=ModelFamily.OPENAI)
+    model_name: Enum = field(default=ModelName.GPT4OMINI)
+    temperature: float = 0.7
     cost_ppm_token: int = 50
     chunk_size: int = 2500
 
-
-class OpenAIProvider(ModelProvider):
-    def __init__(self, model_config: ModelConfig = OpenAIConfig()):
-        self.model_config = model_config
-        self.chat = ChatOpenAI(model=str(self.model_config.name.value))
-        # logger.info(
-        #     f"Setting model provider to {model_config.name} from {model_config.family}."
-        # )
+    def __init__(self):
+        self.chat = ChatOpenAI(model=str(self.model_name.value))
 
     def get_chat_model(self) -> ChatOpenAI:
         return self.chat
-
-    def get_model_name(self) -> ModelName:
-        return ModelName.DEFAULT

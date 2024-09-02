@@ -1,6 +1,6 @@
-from adapter.ai.base import ModelConfig, ModelProvider
-from adapter.ai.constants import Scenario
-from adapter.ai.prompts import PromptProvider
+from enum import Enum
+
+from domain.ai.base import BaseModelProvider, BasePromptProvider
 from domain.model.core.chunk import TextChunk
 from domain.model.core.question import FlashCard, MultipleChoice
 from domain.model.utils.exceptions import NotEnoughInformationInContext, PromptNotFound
@@ -18,12 +18,21 @@ from tenacity import (
 logger = app_logger.get_logger()
 
 
+class Scenario(Enum):
+    FLASHCARD = "flash_card"
+    MULTIPLECHOICE = "multiple_choice"
+    ANSWER = "answer"
+    CONTEXTCHECK = "context_check"
+
+
 class AIModel:
-    def __init__(self, model_provider: ModelProvider):
+    def __init__(
+        self, model_provider: BaseModelProvider, prompt_provider: BasePromptProvider
+    ):
         self.model_provider = model_provider
+        self._prompt_provider = prompt_provider
         self.chat = model_provider.get_chat_model()
         self.model_name = model_provider.get_model_name()
-        self._prompt_provider = PromptProvider()
 
     @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6))
     def get_chat_completion(self, messages: list[SystemMessage | HumanMessage]) -> str:
@@ -37,9 +46,6 @@ class AIModel:
     ) -> str:
         response = await self.chat.ainvoke(messages)
         return str(response.content)
-
-    def get_model_config(self) -> ModelConfig:
-        return self.model_provider.get_model_config()
 
     def _context_check(self, chunk: str, exam_name: str) -> bool:
         scenario, model = Scenario.CONTEXTCHECK, self.model_name

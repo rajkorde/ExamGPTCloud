@@ -1,15 +1,32 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from enum import Enum
+from typing import Optional
 
 import tiktoken
-from ai.constants import ModelFamily, ModelName
+from dataclasses_json import dataclass_json
+from domain.ai.aimodel import Scenario
 from langchain.chat_models.base import BaseChatModel
 
 
+@dataclass_json
 @dataclass
-class ModelConfig:
-    family: ModelFamily
-    name: ModelName
+class Prompt:
+    scenario: Scenario
+    model: str
+    prompt: str
+
+
+class BasePromptProvider:
+    prompts_file: str = "prompts.yaml"
+
+    def get_prompt(self, scenario: Scenario, model: str) -> Optional[str]: ...
+
+
+@dataclass
+class BaseModelProvider(ABC):
+    model_family: Enum
+    model_name: Enum
     cost_ppm_token: int
     temperature: float = 0.7
     # bump the cost of by this amount to factor in input and output tokens being different price
@@ -23,19 +40,15 @@ class ModelConfig:
 
     def get_token_count(self, text: str) -> int:
         """Returns the number of tokens in a text string."""
-        encoding = tiktoken.encoding_for_model(self.name.value)
+        encoding = tiktoken.encoding_for_model(self.model_name.value)
         num_tokens = len(encoding.encode(text))
         return num_tokens
-
-
-class ModelProvider(ABC):
-    model_config: ModelConfig
-
-    def get_model_config(self) -> ModelConfig:
-        return self.model_config
 
     @abstractmethod
     def get_chat_model(self) -> BaseChatModel: ...
 
-    @abstractmethod
-    def get_model_name(self) -> ModelName: ...
+    def get_model_name(self) -> str:
+        return self.model_name.value
+
+    def get_model_family(self) -> str:
+        return self.model_family.value

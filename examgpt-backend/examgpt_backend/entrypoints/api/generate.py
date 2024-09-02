@@ -80,8 +80,6 @@ def handler(event: dict[str, Any], context: Any):
     assert flash_cards
     assert multiple_choices
 
-    # Update Chunk states
-
     # Save QA objects to DynamoDB
 
     # Update Chunk states

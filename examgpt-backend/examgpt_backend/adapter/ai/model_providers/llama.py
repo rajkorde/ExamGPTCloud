@@ -1,28 +1,21 @@
 from dataclasses import dataclass, field
+from enum import Enum
 
-from ai.base import ModelConfig, ModelProvider
-from ai.constants import ModelFamily, ModelName
-from langchain_community.chat_models import ChatOllama
+from adapter.ai.constants import ModelFamily, ModelName
+from domain.ai.base import BaseModelProvider
+from langchain_openai import ChatOpenAI
 
 
 @dataclass
-class LlamaConfig(ModelConfig):
-    family: ModelFamily = field(default=ModelFamily.OLLAMA)
-    name: ModelName = field(default=ModelName.LLAMA3)
-    cost_ppm_token: int = 0
+class LlamaProvider(BaseModelProvider):
+    model_family: Enum = field(default=ModelFamily.OLLAMA)
+    model_name: Enum = field(default=ModelName.LLAMA3)
+    temperature: float = 0.7
+    cost_ppm_token: int = 50
     chunk_size: int = 2500
 
+    def __init__(self):
+        self.chat = ChatOpenAI(model=str(self.model_name.value))
 
-class LlamaProvider(ModelProvider):
-    def __init__(self, model_config: ModelConfig = LlamaConfig()):
-        self.model_config = model_config
-        self.chat = ChatOllama(model=str(self.model_config.name.value))
-        # logger.info(
-        #     f"Setting model provider to {model_config.name} from {model_config.family}."
-        # )
-
-    def get_chat_model(self) -> ChatOllama:
+    def get_chat_model(self) -> ChatOpenAI:
         return self.chat
-
-    def get_model_name(self) -> ModelName:
-        return ModelName.DEFAULT

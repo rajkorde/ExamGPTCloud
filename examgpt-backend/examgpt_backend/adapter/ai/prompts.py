@@ -1,21 +1,12 @@
-from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 import yaml
-from adapter.ai.constants import ModelName
-from dataclasses_json import dataclass_json
-from examgpt.core.question import Scenario
+from domain.ai.aimodel import Scenario
+from domain.ai.base import BasePromptProvider, Prompt
 
 
-@dataclass_json
-@dataclass
-class Prompt:
-    scenario: Scenario
-    model: ModelName
-    prompt: str
-
-
-class PromptProvider:
+class PromptProvider(BasePromptProvider):
     prompts_file: str = "prompts.yaml"
 
     def __init__(self):
@@ -26,7 +17,7 @@ class PromptProvider:
             # adding type ignore because pylance doesnt work with dataclass_json
             self.prompts = [Prompt.from_dict(prompt) for prompt in prompts]  # type: ignore
 
-    def get_prompt(self, scenario: Scenario, model: ModelName) -> str | None:
+    def get_prompt(self, scenario: Scenario, model: str) -> Optional[str]:
         for prompt in self.prompts:
             if prompt.scenario == scenario and prompt.model == model:
                 return prompt.prompt  # return first hit
