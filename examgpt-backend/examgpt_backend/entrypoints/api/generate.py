@@ -46,6 +46,7 @@ def handler(event: dict[str, Any], context: Any):
     qa_service = command_registry.get_qa_service()
 
     # parse request (Get all chunks)
+    logger.info("Parsing request.")
     qa_request = GenerateQARequest.parse_event(event)
     if not qa_request:
         logger.error("Error: Could not parse event")
@@ -57,6 +58,7 @@ def handler(event: dict[str, Any], context: Any):
         return get_success("Nothing to process.")
 
     # get all chunks, ensure all chunks exist and the state is not processed
+    logger.info("Getting all chunks in the notification from the database.")
     chunks = get_chunks(GetChunks(chunk_ids=chunk_ids), chunk_service=chunk_service)
     if not chunks:
         logger.error("Error: Could not get chunks")
@@ -69,6 +71,7 @@ def handler(event: dict[str, Any], context: Any):
     exam_code = chunks[0].exam_code
 
     # get exam
+    logger.info("Getting exam from the database.")
     exam = get_exam(GetExam(exam_code=exam_code), exam_service=exam_service)
     if not exam:
         logger.error("Error: Could not get exam")
@@ -78,6 +81,7 @@ def handler(event: dict[str, Any], context: Any):
 
     # Create QA objects for each chunk, if not already created
     ## Get OpenAI key
+    logger.info("Getting model key.")
     openai_key = get_parameter(
         GetParameter(name=openai_key_name, is_encrypted=True), environment_service
     )
@@ -87,6 +91,7 @@ def handler(event: dict[str, Any], context: Any):
     logger.debug(f"{openai_key=}")
 
     ## Create QA objects
+    logger.info("Generating flash cards.")
     flash_cards = create_flash_cards(
         [
             CreateFlashCard(
@@ -100,6 +105,7 @@ def handler(event: dict[str, Any], context: Any):
         ai_service,
     )
 
+    logger.info("Generating multiple choice questions.")
     multiple_choices = create_multiple_choices(
         [
             CreateMultipleChoice(
@@ -126,9 +132,11 @@ def handler(event: dict[str, Any], context: Any):
     assert multiple_choices
 
     # Save QA objects to DynamoDB
+    logger.info("Saving flash cards to Database.")
     flashcard_response = save_flashcards(
         SaveFlashCards(flash_cards=flash_cards), qa_service
     )
+    logger.info("Saving multiple choice questions to Database.")
     multiplechoice_response = save_multiplechoices(
         SaveMultipleChoices(multiple_choices=multiple_choices),
         qa_service,

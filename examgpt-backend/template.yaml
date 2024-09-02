@@ -227,9 +227,9 @@ Resources:
           QA_TABLE: !Ref QATable
       Policies:
         - DynamoDBCrudPolicy:
-            TableName:
-              - !Ref ChunkTable
-              - !Ref QATable
+            TableName: !Ref ChunkTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref QATable
         - Statement:
             - Action:
                 - ssm:GetParameter
