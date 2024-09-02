@@ -6,15 +6,20 @@ from domain.ports.ai_service import AIService
 
 
 def create_flash_card(
-    command: CreateFlashCard, ai_service: AIService
+    command: CreateFlashCard,
+    ai_service: AIService,
 ) -> Optional[list[FlashCardEnhanced]]:
-    return ai_service.create_flash_card(command.chunk, command.exam_code)
+    return ai_service.create_flash_card(
+        command.chunk, command.exam_code, command.exam_name, command.model_provider
+    )
 
 
 def create_multiple_choice(
     command: CreateMultipleChoice, ai_service: AIService
 ) -> Optional[list[MultipleChoiceEnhanced]]:
-    return ai_service.create_multiple_choice(command.chunk, command.exam_code)
+    return ai_service.create_multiple_choice(
+        command.chunk, command.exam_code, command.exam_name, command.model_provider
+    )
 
 
 def create_flash_cards(

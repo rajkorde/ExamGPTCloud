@@ -47,11 +47,13 @@ class MultipleChoice(BaseModel):
 
 class FlashCardEnhanced(FlashCard):
     chunk_id: str
+    exam_code: str
     qa_id: str = Field(default_factory=lambda: codenamize(str(uuid4())))
     last_updated: str = Field(default_factory=get_current_time)
 
 
 class MultipleChoiceEnhanced(MultipleChoice):
     chunk_id: str
+    exam_code: str
     qa_id: str = Field(default_factory=lambda: codenamize(str(uuid4())))
     last_updated: str = Field(default_factory=get_current_time)

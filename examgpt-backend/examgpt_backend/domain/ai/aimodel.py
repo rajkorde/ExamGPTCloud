@@ -72,7 +72,9 @@ class AIModel:
         retry=retry_if_not_exception_type(NotEnoughInformationInContext),
         reraise=True,
     )
-    def generate_flashcard_qa(self, chunk: TextChunk, exam_name: str) -> FlashCard:
+    def generate_flashcard_qa(
+        self, chunk: TextChunk, exam_name: str
+    ) -> list[FlashCard]:
         scenario, model = Scenario.FLASHCARD, self.model_name
 
         if not self._context_check(chunk=chunk.text, exam_name=exam_name):
@@ -97,7 +99,7 @@ class AIModel:
             {"exam_name": exam_name, "context": chunk.text}
         )
 
-        return parser.invoke(output)
+        return [parser.invoke(output)]
 
     @retry(
         wait=wait_random_exponential(min=1, max=60),
@@ -107,10 +109,11 @@ class AIModel:
     )
     def generate_multiplechoice_qa(
         self, chunk: TextChunk, exam_name: str
-    ) -> MultipleChoice:
+    ) -> list[MultipleChoice]:
         scenario, model = Scenario.MULTIPLECHOICE, self.model_name
 
         if not self._context_check(chunk=chunk.text, exam_name=exam_name):
+            logger.warning("Not enough information in context")
             raise NotEnoughInformationInContext(chunk.chunk_id)
 
         prompt = self._prompt_provider.get_prompt(scenario=scenario, model=model)
@@ -130,7 +133,7 @@ class AIModel:
             {"exam_name": exam_name, "context": chunk.text}
         )
 
-        return parser.invoke(output)
+        return [parser.invoke(output)]
 
     def generate_answer(self, chunk: str, question: str, exam_name: str) -> str:
         raise NotImplementedError()
