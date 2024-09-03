@@ -40,7 +40,7 @@ class ExamServiceDynamoDB(ExamService):
 
     def put_exam(self, exam: Exam, overwrite: bool = False) -> bool:
         item = exam.model_dump()
-        item["state"] = ExamState.SAVED.value
+        item["state"] = exam.state.value
 
         if not exam or not exam.exam_code:
             raise InvalidExam()
@@ -52,7 +52,6 @@ class ExamServiceDynamoDB(ExamService):
         try:
             self.table.put_item(
                 Item=item,
-                # ConditionExpression="attribute_not_exists(exam_code)",
             )
             logger.info(f"Exam saved successfully: {exam.exam_code}")
             return True
