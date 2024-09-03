@@ -3,9 +3,9 @@ from dataclasses import asdict
 from typing import Any
 
 from domain.command_handlers.content_commands_handler import create_upload_urls
-from domain.command_handlers.exam_commands_handler import save_exam
+from domain.command_handlers.exam_commands_handler import get_exam, save_exam
 from domain.commands.content_commands import CreateUploadURLs
-from domain.commands.exam_commands import SaveExam
+from domain.commands.exam_commands import GetExam, SaveExam
 from domain.model.utils.logging import app_logger
 from domain.ports.data_service import ExamService
 from entrypoints.helpers.utils import CommandRegistry, get_error
@@ -38,11 +38,20 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     )
 
     logger.debug("Saving Exam.")
-    response = save_exam(SaveExam(exam=exam), exam_service)
-    if not response:
-        return get_error(f"Could not save Exam: {exam.exam_code}")
+    exam_response = None
+    if exam_request.exam_code:
+        logger.debug(f"Requesting existing exam code: {exam_request.exam_code}")
+        exam_response = get_exam(
+            GetExam(exam_code=exam_request.exam_code), exam_service
+        )
+    if not exam_request.exam_code or not exam_response:
+        response = save_exam(SaveExam(exam=exam), exam_service)
+        if not response:
+            return get_error(f"Could not save Exam: {exam.exam_code}")
+        logger.debug("Exam saved.")
+    else:
+        logger.debug("Exam already exists.")
 
-    logger.debug("Exam saved.")
     return {
         "statusCode": 200,
         "headers": {

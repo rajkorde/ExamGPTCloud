@@ -6,13 +6,13 @@
       "EventSubscriptionArn": "arn:aws:sns:us-west-2:992382587769:examgpt-backend-ChunkTopic-BRcOg37bt5om:54f38cf4-d2f5-476e-b0af-6b42ef0d2dba",
       "Sns": {
         "Type": "Notification",
-        "MessageId": "4273deaf-f523-591d-9c38-81e4e413b114",
+        "MessageId": "a56bb753-442d-5b77-8da5-e80318a62edc",
         "TopicArn": "arn:aws:sns:us-west-2:992382587769:examgpt-backend-ChunkTopic-BRcOg37bt5om",
         "Subject": "None",
-        "Message": "{\"chunk_ids\": [\"ae45ee0e-311e-4775-aa59-cc824c2b1658\", \"fcb4a951-ecc3-4c6d-ac23-4b0e363bc074\", \"aadf629d-2f4e-418f-8823-49a27032b55b\", \"93489a3a-96a9-44b0-b22f-a6ca3f21aac2\", \"f7957c43-542d-4f1c-8c0b-68494208eb9c\", \"5c9ffcc2-f1a9-44ba-9454-4d7fa0b5d71d\", \"b3c47ccf-15fa-4896-987e-2e024d89fcdb\", \"460c287d-a6c8-453b-bfdf-f8c27a53bb93\", \"420e2e07-01b9-4c56-90a7-17b6236611ed\", \"83cc85bc-619b-429a-a58b-ff8d3cc8496e\"]}",
-        "Timestamp": "2024-08-30T00:14:40.669Z",
+        "Message": "{\"chunk_ids\": [\"3bd0ec48-0eaf-4fe6-a0a9-ee9a9737330e\", \"37ce8102-dc6e-43bd-9dc7-6ad0b29efb1b\", \"689bddea-d522-4878-87b4-4be367440cab\", \"5d617ccf-9c45-4772-a7a3-2374ce04721f\", \"8a581634-f082-4b0d-9fdd-1d3d55d3493a\", \"26121591-9b5f-4220-9d00-8e43127aee5b\", \"30531987-6b3e-4b5a-b806-12764d343a05\", \"fa431d05-bf4c-4f4a-a8af-b42bde8d80ff\", \"43927f04-5fcb-4c94-b443-f1f2e4526ee9\", \"ce4eb85a-c0ac-4eb0-852e-49d7ec88d261\"]}",
+        "Timestamp": "2024-09-03T00:37:31.453Z",
         "SignatureVersion": "1",
-        "Signature": "JhkvPENUMasrFvDSmFTDPhu8hsFXeixBCDPqUbkbJ14irIPMmYLPa7wAOPQjqkp5XWegwBlaQ3QEuSDaflwHLFulvvvW5IyFfAZh8gdiYWMlMG5tXLzrH3C+XNaXAT5IWb3OTlHZaedSJBmsZHYHSOgwjqYJYcD7ieiA+2fdhnxooEZu9YqpEFEsfIZTSPzDj7DCCQsxpeQdvohS9YjCmYefJbKBObuDJvOSkWzTdY0O059aVCt+EGY45mgGK9Alt6DLmjChEWkRvM2DHBSxexExOssn8fi4hG1BI3bvOi5oGLwTHb32PGtta+v3CW3/5Z83AN3bEalu7zeMidNjrg==",
+        "Signature": "GVwCC6VmzITKqwRFmLIggDl9NqW3JmjitDoHT8k85dchqiuJuM1I5mRieDstN3Im0hqLFRkHG9V3invQjO9C6YozQ0xy/d7Dufsy0HlOony5oUKIn8h89Dzqa+76x442GPKd5AOZ9s2nqWEvt4uSPPEN/OaidLeXcoMw4oUXhQdnugeWwyJ5i9gqVmcz1gH/Pgz4Rdq/S/Q+r12/5fxUyQLJ03lA34UckKipy/C3cmIrAOKphFR91Q8L9/jQBIOQHK4rzUmp7SKSxihaV94RsXXt/W3XAA8JZW0yAXjuy13x5pVsW9z5vbK1e8EvtCVAKn6nYvD2YvOLIJrGSTek+Q==",
         "SigningCertUrl": "https://sns.us-west-2.amazonaws.com/SimpleNotificationService-60eadc530605d63b8e62a523676ef735.pem",
         "UnsubscribeUrl": "https://sns.us-west-2.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-west-2:992382587769:examgpt-backend-ChunkTopic-BRcOg37bt5om:54f38cf4-d2f5-476e-b0af-6b42ef0d2dba",
         "MessageAttributes": {}

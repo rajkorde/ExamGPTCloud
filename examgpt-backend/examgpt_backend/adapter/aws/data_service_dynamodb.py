@@ -109,7 +109,15 @@ class ChunkServiceDynamoDB(ChunkService):
 
     def get_chunks(self, chunk_ids: list[str]) -> Optional[list[TextChunk]]:
         try:
-            response = self.table.batch_get_item(
+            logger.info(f"Retrieving chunk items with keys {chunk_ids}")
+            batch_keys = {
+                self.table.name: {
+                    "Keys": [{"chunk_id": chunk_id} for chunk_id in chunk_ids]
+                }
+            }
+            logger.info(batch_keys)
+
+            response = self.ddb.batch_get_item(
                 RequestItems={
                     self.table.name: {
                         "Keys": [{"chunk_id": chunk_id} for chunk_id in chunk_ids]
