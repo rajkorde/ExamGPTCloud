@@ -17,6 +17,7 @@ class PromptProvider(BasePromptProvider):
             self.prompts = [Prompt.from_dict(prompt) for prompt in prompts]  # type: ignore
 
     def get_prompt(self, scenario: Scenario, model: str) -> Optional[str]:
+        model = "default"  # override model parameter since we are not using model specific prompts yet
         for prompt in self.prompts:
             if prompt.scenario == scenario and prompt.model == model:
                 return prompt.prompt  # return first hit

@@ -24,6 +24,7 @@ class AIModel:
         self._prompt_provider = prompt_provider
         self.chat = model_provider.get_chat_model()
         self.model_name = model_provider.get_model_name()
+        logger.info(f"Using AI model: {self.model_name}")
 
     @retry(wait=wait_random_exponential(min=1, max=60), stop=stop_after_attempt(6))
     def get_chat_completion(self, messages: list[SystemMessage | HumanMessage]) -> str:
@@ -53,6 +54,7 @@ class AIModel:
         prompt_and_model = (
             prompt | self.chat | BooleanOutputParser(true_val="True", false_val="False")
         )
+        logger.info("Querying model for context check.")
         output = prompt_and_model.invoke({"exam_name": exam_name, "context": chunk})
 
         return output
@@ -90,6 +92,9 @@ class AIModel:
             {"exam_name": exam_name, "context": chunk.text}
         )
 
+        logger.info(
+            f"Querying model for flashcard creation for chunk: {chunk.chunk_id}"
+        )
         return [parser.invoke(output)]
 
     @retry(
@@ -124,6 +129,9 @@ class AIModel:
             {"exam_name": exam_name, "context": chunk.text}
         )
 
+        logger.info(
+            f"Querying model for multiple choice creation for chunk: {chunk.chunk_id}."
+        )
         return [parser.invoke(output)]
 
     def generate_answer(self, chunk: str, question: str, exam_name: str) -> str:

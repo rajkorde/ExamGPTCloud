@@ -33,7 +33,11 @@ class AIServiceExt(AIService):
             return None
         return [
             FlashCardEnhanced(
-                **flashcard.dict(), chunk_id=chunk.chunk_id, exam_code=exam_code
+                **flashcard.dict(),
+                chunk_id=chunk.chunk_id,
+                exam_code=exam_code,
+                model_family=model_provider.model_family.value,
+                model_name=model_provider.model_name.value,
             )
             for flashcard in flashcards
         ]
@@ -59,7 +63,11 @@ class AIServiceExt(AIService):
             return None
         return [
             MultipleChoiceEnhanced(
-                **multiplechoice.dict(), chunk_id=chunk.chunk_id, exam_code=exam_code
+                **multiplechoice.dict(),
+                chunk_id=chunk.chunk_id,
+                exam_code=exam_code,
+                model_family=model_provider.model_family.value,
+                model_name=model_provider.model_name.value,
             )
             for multiplechoice in multiplechoices
         ]
