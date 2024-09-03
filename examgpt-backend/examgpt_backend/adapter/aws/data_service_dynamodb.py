@@ -181,6 +181,7 @@ class QAServiceDynamodb(QAService):
     def get_items_by_exam_code(self, exam_code: str) -> Optional[list[dict[str, Any]]]:
         try:
             response = self.table.query(
+                IndexName="ExamIndex",
                 KeyConditionExpression=Key("exam_code").eq(exam_code),
             )
         except (ClientError, BotoCoreError) as e:
