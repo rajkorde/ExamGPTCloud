@@ -4,7 +4,7 @@ from typing import Any, Optional
 import boto3
 from boto3.dynamodb.conditions import Key
 from botocore.exceptions import BotoCoreError, ClientError
-from domain.model.core.chunk import TextChunk, TextChunkState
+from domain.model.core.chunk import TextChunk
 from domain.model.core.exam import Exam, ExamState
 from domain.model.core.question import FlashCardEnhanced, MultipleChoiceEnhanced
 from domain.model.utils.exceptions import (
@@ -99,7 +99,6 @@ class ChunkServiceDynamoDB(ChunkService):
             with self.table.batch_writer() as batch:
                 for chunk in chunks:
                     item = chunk.model_dump()
-                    item["state"] = chunk.state.value
                     batch.put_item(Item=item)
         except ValidationError as e:
             logger.error(f"Validation error: {e}")
@@ -136,7 +135,6 @@ class ChunkServiceDynamoDB(ChunkService):
                 Key={"chunk_id": chunk_id, "exam_code": exam_code}
             )
             item = response.get("Item")
-            item["state"] = TextChunkState(item["state"])
             if item:
                 return TextChunk(**item)
             return None

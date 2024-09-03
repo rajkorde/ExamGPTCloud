@@ -11,7 +11,10 @@ from adapter.aws.data_service_dynamodb import (
     QAServiceDynamodb,
 )
 from adapter.aws.environment_service_ssm import EnvironmentServiceSSM
-from adapter.aws.notification_service_sns import ChunkNotificationServiceSNS
+from adapter.aws.notification_service_sns import (
+    ChunkNotificationServiceSNS,
+    ValidationNotificationServiceSNS,
+)
 from domain.ai.base import BaseModelProvider
 from domain.model.utils.exceptions import InvalidEnvironmentSetup
 from domain.model.utils.logging import app_logger
@@ -19,7 +22,10 @@ from domain.ports.ai_service import AIService
 from domain.ports.content_service import ContentService
 from domain.ports.data_service import ChunkService, ExamService, QAService
 from domain.ports.environment_service import EnvironmentService
-from domain.ports.notification_service import ChunkNotificationService
+from domain.ports.notification_service import (
+    ChunkNotificationService,
+    ValidationNotificationService,
+)
 
 logger = app_logger.get_logger()
 
@@ -59,6 +65,7 @@ class CommandRegistry:
             "AIService": AIServiceExt,
             "ModelProvider": OpenAIProvider,
             "QAService": QAServiceDynamodb,
+            "ValidationNotificationService": ValidationNotificationServiceSNS,
         }
     }
 
@@ -116,4 +123,11 @@ class CommandRegistry:
     def get_qa_service(self) -> QAService:
         service = CommandRegistry._command_registry[str(self.location)]["QAService"]()
         assert isinstance(service, QAService)
+        return service
+
+    def get_validation_notification_service(self) -> ValidationNotificationService:
+        service = CommandRegistry._command_registry[str(self.location)][
+            "ValidationNotificationService"
+        ]()
+        assert isinstance(service, ValidationNotificationService)
         return service

@@ -49,6 +49,8 @@ Resources:
   # SNS Topics
   ChunkTopic:
     Type: AWS::SNS::Topic
+  ValidateTopic:
+    Type: AWS::SNS::Topic
 
   # Parameter Store
   # Deploys parameters with dummy values. Update these with real values using
@@ -225,11 +227,17 @@ Resources:
         Variables:
           CHUNK_TABLE: !Ref ChunkTable
           QA_TABLE: !Ref QATable
+          EXAM_TABLE: !Ref ExamTable
+          VALIDATE_TOPIC: !Ref ValidateTopic
       Policies:
+        - SNSPublishMessagePolicy:
+            TopicName: !GetAtt ValidateTopic.TopicName
         - DynamoDBCrudPolicy:
             TableName: !Ref ChunkTable
         - DynamoDBCrudPolicy:
             TableName: !Ref QATable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ExamTable
         - Statement:
             - Action:
                 - ssm:GetParameter
@@ -242,6 +250,31 @@ Resources:
           Type: SNS
           Properties:
             Topic: !Ref ChunkTopic
+
+  ValidatorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: examgpt_backend/
+      Handler: entrypoints.api.validate.handler
+      MemorySize: 128
+      Timeout: 600
+      Environment:
+        Variables:
+          CHUNK_TABLE: !Ref ChunkTable
+          QA_TABLE: !Ref QATable
+          EXAM_TABLE: !Ref ExamTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ChunkTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref QATable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ExamTable
+      Events:
+        SNSEvent:
+          Type: SNS
+          Properties:
+            Topic: !Ref ValidateTopic
 
   SandboxFunction:
     Type: AWS::Serverless::Function

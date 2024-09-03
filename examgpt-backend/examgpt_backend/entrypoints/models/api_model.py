@@ -52,9 +52,10 @@ class GenerateQARequest(BaseModel):
 
     @staticmethod
     def parse_event(event: dict[str, Any]) -> Optional[GenerateQARequest]:
-        chunk_ids = eval(event["Records"][0]["Sns"]["Message"])["chunk_ids"]
-        exam_code = event["Records"][0]["Sns"]["Message"]["exam_code"]
-        if not chunk_ids or not isinstance(chunk_ids, list):
+        message = eval(event["Records"][0]["Sns"]["Message"])
+        chunk_ids = message["chunk_ids"]
+        exam_code = message["exam_code"]
+        if not chunk_ids or not isinstance(chunk_ids, list) or not exam_code:
             logger.error(f"Invalid event specifiction: {event}")
             return None
         return GenerateQARequest(chunk_ids=chunk_ids, exam_code=exam_code)

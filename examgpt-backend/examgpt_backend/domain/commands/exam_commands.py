@@ -13,3 +13,7 @@ class UpdateExamState(BaseModel):
 
 class GetExam(BaseModel):
     exam_code: str
+
+
+class NotifyValidateExam(BaseModel):
+    exam_code: str
