@@ -1,6 +1,4 @@
-from enum import Enum
-
-from domain.ai.base import BaseModelProvider, BasePromptProvider
+from domain.ai.base import BaseModelProvider, BasePromptProvider, Scenario
 from domain.model.core.chunk import TextChunk
 from domain.model.core.question import FlashCard, MultipleChoice
 from domain.model.utils.exceptions import NotEnoughInformationInContext, PromptNotFound
@@ -16,13 +14,6 @@ from tenacity import (
 )
 
 logger = app_logger.get_logger()
-
-
-class Scenario(Enum):
-    FLASHCARD = "flash_card"
-    MULTIPLECHOICE = "multiple_choice"
-    ANSWER = "answer"
-    CONTEXTCHECK = "context_check"
 
 
 class AIModel:

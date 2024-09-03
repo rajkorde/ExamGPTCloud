@@ -5,8 +5,14 @@ from typing import Optional
 
 import tiktoken
 from dataclasses_json import dataclass_json
-from domain.ai.aimodel import Scenario
 from langchain.chat_models.base import BaseChatModel
+
+
+class Scenario(Enum):
+    FLASHCARD = "flash_card"
+    MULTIPLECHOICE = "multiple_choice"
+    ANSWER = "answer"
+    CONTEXTCHECK = "context_check"
 
 
 @dataclass_json

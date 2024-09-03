@@ -1,10 +1,12 @@
 from domain.ai.base import BaseModelProvider
 from domain.model.core.chunk import TextChunk
 from domain.model.core.question import FlashCardEnhanced, MultipleChoiceEnhanced
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class CreateFlashCard(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
     chunk: TextChunk
     exam_code: str
     exam_name: str
@@ -12,6 +14,7 @@ class CreateFlashCard(BaseModel):
 
 
 class CreateMultipleChoice(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
     chunk: TextChunk
     exam_code: str
     exam_name: str

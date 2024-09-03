@@ -2,8 +2,7 @@ from pathlib import Path
 from typing import Optional
 
 import yaml
-from domain.ai.aimodel import Scenario
-from domain.ai.base import BasePromptProvider, Prompt
+from domain.ai.base import BasePromptProvider, Prompt, Scenario
 
 
 class PromptProvider(BasePromptProvider):

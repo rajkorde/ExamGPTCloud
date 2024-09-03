@@ -1,3 +1,4 @@
+import os
 from typing import Any
 
 import boto3
@@ -34,15 +35,12 @@ logger = app_logger.get_logger()
 
 def handler(event: dict[str, Any], context: Any):
     logger.debug(f"{event=}")
-    message = "Generating QAs based on notifcation."
-    logger.debug(message)
+    logger.debug("Generating QAs based on notifcation.")
 
     command_registry = CommandRegistry()
     chunk_service = command_registry.get_chunk_service()
     environment_service = command_registry.get_environment_service()
-    ai_service = command_registry.get_ai_service()
     exam_service = command_registry.get_exam_service()
-    model_provider = command_registry.get_model_provider()
     qa_service = command_registry.get_qa_service()
 
     # parse request (Get all chunks)
@@ -89,8 +87,11 @@ def handler(event: dict[str, Any], context: Any):
         logger.error("Error: Could not get OpenAI key")
         return get_error()
     logger.debug(f"{openai_key=}")
+    os.environ[openai_key_name.split("/")[2]] = openai_key
 
     ## Create QA objects
+    ai_service = command_registry.get_ai_service()
+    model_provider = command_registry.get_model_provider()
     logger.info("Generating flash cards.")
     flash_cards = create_flash_cards(
         [
