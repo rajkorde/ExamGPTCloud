@@ -8,7 +8,9 @@ class SaveChunks(BaseModel):
 
 class GetChunks(BaseModel):
     chunk_ids: list[str]
+    exam_code: str
 
 
 class NotifyChunks(BaseModel):
     chunk_ids: list[str]
+    exam_code: str

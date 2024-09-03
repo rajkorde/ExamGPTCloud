@@ -65,7 +65,10 @@ def handler(event: dict[str, Any], context: Any):
     #     )
     # test code
     notify_chunks(
-        NotifyChunks(chunk_ids=[c.chunk_id for c in chunks[0:CHUNK_BATCH_SIZE]]),
+        NotifyChunks(
+            chunk_ids=[c.chunk_id for c in chunks[0:CHUNK_BATCH_SIZE]],
+            exam_code=exam_code,
+        ),
         chunk_notification_service,
     )
 

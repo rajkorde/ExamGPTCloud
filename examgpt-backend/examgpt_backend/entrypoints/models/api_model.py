@@ -48,14 +48,16 @@ class CreateExamRequest(BaseModel):
 
 class GenerateQARequest(BaseModel):
     chunk_ids: list[str] = Field(description="List of Chunk IDs")
+    exam_code: str = Field(description="Exam code for the chunks")
 
     @staticmethod
     def parse_event(event: dict[str, Any]) -> Optional[GenerateQARequest]:
         chunk_ids = eval(event["Records"][0]["Sns"]["Message"])["chunk_ids"]
+        exam_code = event["Records"][0]["Sns"]["Message"]["exam_code"]
         if not chunk_ids or not isinstance(chunk_ids, list):
             logger.error(f"Invalid event specifiction: {event}")
             return None
-        return GenerateQARequest(chunk_ids=chunk_ids)
+        return GenerateQARequest(chunk_ids=chunk_ids, exam_code=exam_code)
 
 
 class ChunkerRequest(BaseModel):

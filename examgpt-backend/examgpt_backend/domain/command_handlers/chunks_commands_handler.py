@@ -13,10 +13,12 @@ def save_chunks(command: SaveChunks, chunk_service: ChunkService) -> bool:
 def get_chunks(
     command: GetChunks, chunk_service: ChunkService
 ) -> Optional[list[TextChunk]]:
-    return chunk_service.get_chunks(command.chunk_ids)
+    return chunk_service.get_chunks(command.chunk_ids, command.exam_code)
 
 
 def notify_chunks(
     command: NotifyChunks, chunk_notification_service: ChunkNotificationService
 ) -> bool:
-    return chunk_notification_service.send_notification(command.chunk_ids)
+    return chunk_notification_service.send_notification(
+        command.chunk_ids, command.exam_code
+    )

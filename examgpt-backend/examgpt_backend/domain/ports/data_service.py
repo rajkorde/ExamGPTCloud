@@ -43,7 +43,9 @@ class ChunkService(ABC):
     def save_chunks(self, chunks: list[TextChunk]) -> bool: ...
 
     @abstractmethod
-    def get_chunks(self, chunk_ids: list[str]) -> Optional[list[TextChunk]]: ...
+    def get_chunks(
+        self, chunk_ids: list[str], exam_code: str
+    ) -> Optional[list[TextChunk]]: ...
 
 
 class QAService(ABC):

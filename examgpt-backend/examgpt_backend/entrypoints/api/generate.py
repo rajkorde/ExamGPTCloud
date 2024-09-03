@@ -51,22 +51,24 @@ def handler(event: dict[str, Any], context: Any):
         return get_error()
 
     chunk_ids = qa_request.chunk_ids
+    exam_code = qa_request.exam_code
     if not len(chunk_ids):
         logger.debug("No chunks ids found in message.")
         return get_success("Nothing to process.")
 
     # get all chunks, ensure all chunks exist and the state is not processed
     logger.info("Getting all chunks in the notification from the database.")
-    chunks = get_chunks(GetChunks(chunk_ids=chunk_ids), chunk_service=chunk_service)
+    chunks = get_chunks(
+        GetChunks(chunk_ids=chunk_ids, exam_code=exam_code), chunk_service=chunk_service
+    )
     if not chunks:
         logger.error("Error: Could not get chunks")
         return get_error()
     logger.debug(f"{len(chunks)=}")
     # Ensure exam codes in all text chunks are the same
     assert all(
-        chunk.exam_code == chunks[0].exam_code for chunk in chunks
+        chunk.exam_code == exam_code for chunk in chunks
     ), "Not all values in the list are the same"
-    exam_code = chunks[0].exam_code
 
     # get exam
     logger.info("Getting exam from the database.")

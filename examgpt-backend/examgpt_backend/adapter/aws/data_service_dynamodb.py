@@ -107,20 +107,17 @@ class ChunkServiceDynamoDB(ChunkService):
             return False
         return True
 
-    def get_chunks(self, chunk_ids: list[str]) -> Optional[list[TextChunk]]:
+    def get_chunks(
+        self, chunk_ids: list[str], exam_code: str
+    ) -> Optional[list[TextChunk]]:
         try:
-            logger.info(f"Retrieving chunk items with keys {chunk_ids}")
-            batch_keys = {
-                self.table.name: {
-                    "Keys": [{"chunk_id": chunk_id} for chunk_id in chunk_ids]
-                }
-            }
-            logger.info(batch_keys)
-
             response = self.ddb.batch_get_item(
                 RequestItems={
                     self.table.name: {
-                        "Keys": [{"chunk_id": chunk_id} for chunk_id in chunk_ids]
+                        "Keys": [
+                            {"chunk_id": chunk_id, "exam_code": exam_code}
+                            for chunk_id in chunk_ids
+                        ]
                     }
                 }
             )
@@ -129,15 +126,23 @@ class ChunkServiceDynamoDB(ChunkService):
                 logger.error(f"Unprocessed keys: {response.get('UnprocessedKeys')}")
                 return None
             items = response["Responses"][self.table.name]
-            items = [
-                (lambda item: item.update({"state": TextChunkState(item["state"])}))(
-                    item
-                )
-                for item in items
-            ]
             return [TextChunk(**item) for item in items]
         except (ClientError, BotoCoreError) as e:
             logger.error(f"Error retrieving chunk items with keys {chunk_ids}: {e}")
+            return None
+
+    def get_chunk(self, chunk_id: str, exam_code: str) -> Optional[TextChunk]:
+        try:
+            response = self.table.get_item(
+                Key={"chunk_id": chunk_id, "exam_code": exam_code}
+            )
+            item = response.get("Item")
+            item["state"] = TextChunkState(item["state"])
+            if item:
+                return TextChunk(**item)
+            return None
+        except (ClientError, BotoCoreError) as e:
+            logger.error(f"Error retrieving text chunk item with id {chunk_id}: {e}")
             return None
 
 

@@ -18,8 +18,10 @@ class ChunkNotificationServiceSNS(ChunkNotificationService):
             raise InvalidEnvironmentSetup(SNS_TOPIC_ENV_VAR)
         self.sns = boto3.client("sns")
 
-    def send_notification(self, chunk_ids: list[str]) -> bool:
-        message = {"default": json.dumps({"chunk_ids": chunk_ids})}
+    def send_notification(self, chunk_ids: list[str], exam_code: str) -> bool:
+        message = {
+            "default": json.dumps({"chunk_ids": chunk_ids, "exam_code": exam_code})
+        }
 
         try:
             self.sns.publish(
