@@ -28,7 +28,7 @@ logger = app_logger.get_logger()
 
 
 def handler(event: dict[str, Any], context: Any):
-    logger.debug(f"{event=}")
+    # logger.debug(f"{event=}")
     logger.debug("Generating QAs based on notifcation.")
 
     command_registry = CommandRegistry()
@@ -83,7 +83,6 @@ def handler(event: dict[str, Any], context: Any):
     if not openai_key:
         logger.error("Error: Could not get OpenAI key")
         return get_error()
-    logger.debug(f"{openai_key=}")
     os.environ[openai_key_name.split("/")[2]] = openai_key
 
     ## Create QA objects
