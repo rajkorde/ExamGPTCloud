@@ -35,8 +35,9 @@ def create_flash_cards(
 ) -> Optional[list[FlashCardEnhanced]]:
     flash_cards = []
     for command in commands:
-        flash_cards.append(create_flash_card(command, ai_service))
-
+        fc = create_flash_card(command, ai_service)
+        if fc:
+            flash_cards = flash_cards + fc
     return flash_cards
 
 
@@ -45,7 +46,9 @@ def create_multiple_choices(
 ) -> Optional[list[MultipleChoiceEnhanced]]:
     multiple_choices = []
     for command in commands:
-        multiple_choices.append(create_multiple_choice(command, ai_service))
+        mc = create_multiple_choice(command, ai_service)
+        if mc:
+            multiple_choices = multiple_choices + mc
 
     return multiple_choices
 

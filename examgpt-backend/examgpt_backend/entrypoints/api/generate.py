@@ -28,7 +28,7 @@ logger = app_logger.get_logger()
 
 
 def handler(event: dict[str, Any], context: Any):
-    # logger.debug(f"{event=}")
+    logger.debug(f"{event=}")
     logger.debug("Generating QAs based on notifcation.")
 
     command_registry = CommandRegistry()

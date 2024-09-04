@@ -1,16 +1,21 @@
+from dataclasses import dataclass
+
 from domain.ai.base import BaseModelProvider
 from domain.model.core.chunk import TextChunk
 from domain.model.core.question import FlashCardEnhanced, MultipleChoiceEnhanced
-from langchain.pydantic_v1 import BaseModel as BM1
+
+# from langchain.pydantic_v1 import BaseModel as BM1
 from pydantic import BaseModel as BM2
 from pydantic import ConfigDict
 
 
-class SaveFlashCards(BM1):
+@dataclass
+class SaveFlashCards:
     flash_cards: list[FlashCardEnhanced]
 
 
-class SaveMultipleChoices(BM1):
+@dataclass
+class SaveMultipleChoices:
     multiple_choices: list[MultipleChoiceEnhanced]
 
 
