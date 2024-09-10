@@ -1,0 +1,22 @@
+{
+  "Records": [
+    {
+      "EventSource": "aws:sns",
+      "EventVersion": "1.0",
+      "EventSubscriptionArn": "arn:aws:sns:us-west-2:992382587769:examgpt-backend-ValidateTopic-bC3XrTkFdSy1:e02868d9-1fcf-4ff4-97ce-5e8be240ffcb",
+      "Sns": {
+        "Type": "Notification",
+        "MessageId": "9fba954e-2ffe-56b5-876f-ca1cfee29d3a",
+        "TopicArn": "arn:aws:sns:us-west-2:992382587769:examgpt-backend-ValidateTopic-bC3XrTkFdSy1",
+        "Subject": "None",
+        "Message": "{\"exam_code\": \"festive-heavy\"}",
+        "Timestamp": "2024-09-04T21:19:24.861Z",
+        "SignatureVersion": "1",
+        "Signature": "POyKfSg1IJEBoYjTBJnj/FBuVXjO3OeNmmZ5ueMS+LBWGlVUv7yy7ma8NDXRsewV2KyzRnuabgwCPgD5+uC6FN3afcFcHfoceimarQNFLYtpfzVd9fYa88aXGQ5G6olY90a/Ks8Oh6E7pQSycyE22PZs4xYwzTeB33xE4VGhK+EfB+3kSPupxP0i7OgDMf/JDZdGL2cr6IUIk5fED6hHNuMY3R7BBeoRjTNZR9XoJqHexCPJwwKPzc1ju0q3WhMfOlVKusPTxH14aYadqPleE/DVG/zoncY7ciEEHGUNLC7ZsprBjPorHAAMGRkbUiA/5HZxv0CITqw29w1N1+N4zQ==",
+        "SigningCertUrl": "https://sns.us-west-2.amazonaws.com/SimpleNotificationService-60eadc530605d63b8e62a523676ef735.pem",
+        "UnsubscribeUrl": "https://sns.us-west-2.amazonaws.com/?Action=Unsubscribe&SubscriptionArn=arn:aws:sns:us-west-2:992382587769:examgpt-backend-ValidateTopic-bC3XrTkFdSy1:e02868d9-1fcf-4ff4-97ce-5e8be240ffcb",
+        "MessageAttributes": {}
+      }
+    }
+  ]
+}

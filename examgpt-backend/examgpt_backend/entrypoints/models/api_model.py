@@ -61,6 +61,19 @@ class GenerateQARequest(BaseModel):
         return GenerateQARequest(chunk_ids=chunk_ids, exam_code=exam_code)
 
 
+class ValidateRequest(BaseModel):
+    exam_code: str = Field(description="Exam code for the exam")
+
+    @staticmethod
+    def parse_event(event: dict[str, Any]) -> Optional[ValidateRequest]:
+        message = eval(event["Records"][0]["Sns"]["Message"])
+        exam_code = message["exam_code"]
+        if not exam_code:
+            logger.error(f"Invalid event specifiction: {event}")
+            return None
+        return ValidateRequest(exam_code=exam_code)
+
+
 class ChunkerRequest(BaseModel):
     bucket_name: str = Field(description="Bucket Name")
     location: str = Field(description="Location of the file")

@@ -1,6 +1,6 @@
 ```mermaid
 sequenceDiagram
-  actor fe as FrontEnd
+  actor fe as ReactFrontEnd
   participant ag as API Gateway
   participant cel as CreateExamLambda
   participant S3
