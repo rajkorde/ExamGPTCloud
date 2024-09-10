@@ -11,6 +11,10 @@ class GetChunks(BaseModel):
     exam_code: str
 
 
+class GetChunksByExamCode(BaseModel):
+    exam_code: str
+
+
 class NotifyChunks(BaseModel):
     chunk_ids: list[str]
     exam_code: str

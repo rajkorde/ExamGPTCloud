@@ -129,6 +129,22 @@ class ChunkServiceDynamoDB(ChunkService):
             logger.error(f"Error retrieving chunk items with keys {chunk_ids}: {e}")
             return None
 
+    def get_chunks_by_exam_code(self, exam_code: str) -> Optional[list[TextChunk]]:
+        try:
+            response = self.table.query(
+                IndexName="ExamIndex",
+                KeyConditionExpression=Key("exam_code").eq(exam_code),
+            )
+            items = response.get("Items", [])
+            if not items:
+                return None
+            if not len(items):
+                return []
+            return [TextChunk(**item) for item in items]
+        except (BotoCoreError, ClientError) as error:
+            print(f"Error fetching data: {error}")
+            return None
+
     def get_chunk(self, chunk_id: str, exam_code: str) -> Optional[TextChunk]:
         try:
             response = self.table.get_item(

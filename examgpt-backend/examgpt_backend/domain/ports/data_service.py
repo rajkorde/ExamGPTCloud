@@ -47,6 +47,9 @@ class ChunkService(ABC):
         self, chunk_ids: list[str], exam_code: str
     ) -> Optional[list[TextChunk]]: ...
 
+    @abstractmethod
+    def get_chunks_by_exam_code(self, exam_code: str) -> Optional[list[TextChunk]]: ...
+
 
 class QAService(ABC):
     @abstractmethod
