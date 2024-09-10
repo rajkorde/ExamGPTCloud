@@ -24,13 +24,11 @@ class AIServiceExt(AIService):
             model_provider=model_provider,
             prompt_provider=prompt_provider,
         )
-        try:
-            flashcards = model.generate_flashcard_qa(chunk, exam_name)
-        except Exception as e:
-            logger.error(f"Error generating flashcard: {e}")
-            return None
+
+        flashcards = model.generate_flashcard_qa(chunk, exam_name)
         if not flashcards:
             return None
+
         return [
             FlashCardEnhanced(
                 **flashcard.dict(),
@@ -54,11 +52,8 @@ class AIServiceExt(AIService):
             model_provider=model_provider,
             prompt_provider=prompt_provider,
         )
-        try:
-            multiplechoices = model.generate_multiplechoice_qa(chunk, exam_name)
-        except Exception as e:
-            logger.error(f"Error generating multiple choice: {e}")
-            return None
+
+        multiplechoices = model.generate_multiplechoice_qa(chunk, exam_name)
         if not multiplechoices:
             return None
         return [

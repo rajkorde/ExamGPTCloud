@@ -5,8 +5,8 @@ from domain.command_handlers.chunks_commands_handler import get_chunks, save_chu
 from domain.command_handlers.environments_commands_handler import get_parameter
 from domain.command_handlers.exam_commands_handler import get_exam, notify_validate_exam
 from domain.command_handlers.questions_commands_handler import (
-    create_flash_cards,
-    create_multiple_choices,
+    create_flash_card,
+    create_multiple_choice,
     save_flashcards,
     save_multiplechoices,
 )
@@ -19,6 +19,7 @@ from domain.commands.questions_commands import (
     SaveFlashCards,
     SaveMultipleChoices,
 )
+from domain.model.utils.exceptions import NotEnoughInformationInContext
 from domain.model.utils.logging import app_logger
 from entrypoints.helpers.utils import CommandRegistry, get_error, get_success
 from entrypoints.models.api_model import GenerateQARequest
@@ -88,35 +89,54 @@ def handler(event: dict[str, Any], context: Any):
     ## Create QA objects
     ai_service = command_registry.get_ai_service()
     model_provider = command_registry.get_model_provider()
+
     logger.info("Generating flash cards.")
-    flash_cards = create_flash_cards(
-        [
-            CreateFlashCard(
-                chunk=chunk,
-                exam_code=exam_code,
-                exam_name=exam_name,
-                model_provider=model_provider,
+    flash_cards = []
+    for chunk in chunks:
+        if chunk.flash_card_generated or chunk.is_empty_context:
+            continue
+        try:
+            fc = create_flash_card(
+                CreateFlashCard(
+                    chunk=chunk,
+                    exam_code=exam_code,
+                    exam_name=exam_name,
+                    model_provider=model_provider,
+                ),
+                ai_service,
             )
-            for chunk in chunks
-            if not chunk.flash_card_generated
-        ],
-        ai_service,
-    )
+            if fc:
+                flash_cards = flash_cards + fc
+                chunk.flash_card_generated = True
+        except NotEnoughInformationInContext:
+            chunk.is_empty_context = True
+        except Exception as e:
+            logger.error(f"Error creating flash card: {e}")
+            continue
 
     logger.info("Generating multiple choice questions.")
-    multiple_choices = create_multiple_choices(
-        [
-            CreateMultipleChoice(
-                chunk=chunk,
-                exam_code=exam_code,
-                exam_name=exam_name,
-                model_provider=model_provider,
+    multiple_choices = []
+    for chunk in chunks:
+        if chunk.multiple_choice_generated or chunk.is_empty_context:
+            continue
+        try:
+            mc = create_multiple_choice(
+                CreateMultipleChoice(
+                    chunk=chunk,
+                    exam_code=exam_code,
+                    exam_name=exam_name,
+                    model_provider=model_provider,
+                ),
+                ai_service,
             )
-            for chunk in chunks
-            if not chunk.multiple_choice_generated
-        ],
-        ai_service,
-    )
+            if mc:
+                multiple_choices = multiple_choices + mc
+                chunk.multiple_choice_generated = True
+        except NotEnoughInformationInContext:
+            chunk.is_empty_context = True
+        except Exception as e:
+            logger.error(f"Error creating multiple choice: {e}")
+            continue
 
     if (
         not flash_cards
@@ -125,10 +145,9 @@ def handler(event: dict[str, Any], context: Any):
         or not len(multiple_choices)
     ):
         logger.warning("Could not create any QA objects for chunks")
-        return get_error()
-
-    assert flash_cards
-    assert multiple_choices
+        # Not being able to generate any QA objects is not an error.
+        # They might have been generated already.
+        return get_success("Nothing to process.")
 
     # Save QA objects to DynamoDB
     logger.info("Saving flash cards to Database.")
@@ -145,9 +164,7 @@ def handler(event: dict[str, Any], context: Any):
         return get_error()
 
     # Update Chunk states
-    logger.info("Updating chunks.")
-    [setattr(chunk, "flash_card_generated", True) for chunk in chunks]
-    [setattr(chunk, "multiple_choice_generated", True) for chunk in chunks]
+    logger.info("Saving chunks.")
     response = save_chunks(
         command=SaveChunks(chunks=chunks), chunk_service=chunk_service
     )

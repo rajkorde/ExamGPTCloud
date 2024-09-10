@@ -30,29 +30,6 @@ def create_multiple_choice(
     )
 
 
-def create_flash_cards(
-    commands: list[CreateFlashCard], ai_service: AIService
-) -> Optional[list[FlashCardEnhanced]]:
-    flash_cards = []
-    for command in commands:
-        fc = create_flash_card(command, ai_service)
-        if fc:
-            flash_cards = flash_cards + fc
-    return flash_cards
-
-
-def create_multiple_choices(
-    commands: list[CreateMultipleChoice], ai_service: AIService
-) -> Optional[list[MultipleChoiceEnhanced]]:
-    multiple_choices = []
-    for command in commands:
-        mc = create_multiple_choice(command, ai_service)
-        if mc:
-            multiple_choices = multiple_choices + mc
-
-    return multiple_choices
-
-
 def save_flashcards(command: SaveFlashCards, data_service: QAService) -> bool:
     return data_service.save_flashcards(command.flash_cards)
 

@@ -9,5 +9,6 @@ class TextChunk(BaseModel):
     text: str
     flash_card_generated: bool = Field(default=False)
     multiple_choice_generated: bool = Field(default=False)
+    is_empty_context: bool = Field(default=False)
     chunk_id: str = Field(default_factory=lambda: str(uuid4()))
     last_updated: str = Field(default_factory=get_current_time)
