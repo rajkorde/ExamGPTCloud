@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Exam Notification</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      h1,
+      h2 {
+        color: #2c3e50;
+      }
+      .qr-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+      }
+      .qr-table td {
+        padding: 10px;
+        text-align: center;
+        border: 1px solid #ddd;
+      }
+      .qr-code {
+        width: 150px;
+        height: 150px;
+        margin-bottom: 10px;
+      }
+      .store-link {
+        display: block;
+        margin-top: 10px;
+        color: #3498db;
+        text-decoration: none;
+      }
+      .centered {
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <p>Dear User,</p>
+
+    <p>
+      Your exam <b>'{{ exam_code }}'</b> is now available. Please download the
+      Telegram app if you haven't already using one of the links below.
+    </p>
+
+    <p>
+      Then follow this link to start the telegram bot and follow the
+      instructions:
+      <a href="{{ bot_link }}">ExamGPT Telegram Bot</a>
+    </p>
+
+    <h2>Download Telegram</h2>
+    <p>Scan the QR code below to download Telegram for your device:</p>
+
+    <table class="qr-table">
+      <tr>
+        <td>
+          <img
+            src="Telegram_Apple.png"
+            alt="QR Code for Apple App Store"
+            class="qr-code"
+          />
+          <h3 class="centered">iOS</h3>
+          <a
+            href="https://apps.apple.com/us/app/telegram-messenger/id686449807"
+            class="store-link"
+            >Apple App Store</a
+          >
+        </td>
+        <td>
+          <img
+            src="Telegram_Google.png"
+            alt="QR Code for Google Play Store"
+            class="qr-code"
+          />
+          <h3 class="centered">Android</h3>
+          <a
+            href="https://play.google.com/store/apps/details?id=org.telegram.messenger"
+            class="store-link"
+            >Google Play Store</a
+          >
+        </td>
+      </tr>
+    </table>
+
+    <h2>Next Steps</h2>
+    <ol>
+      <li>
+        Download and install the Telegram app using one of the QR codes above.
+      </li>
+      <li>
+        Open the
+        <a href="https://t.me/RSKPythonExamGPTBot">ExamGPT Telegram Bot</a>
+        link.
+      </li>
+      <li>Follow the instructions provided by the bot to start your exam.</li>
+    </ol>
+
+    <p>If you encounter any issues, please contact our support team.</p>
+
+    <p><b>Good luck,</b><br />Your ExamGPT Team</p>
+  </body>
+</html>

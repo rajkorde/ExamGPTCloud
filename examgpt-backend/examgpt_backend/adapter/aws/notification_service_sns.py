@@ -7,6 +7,7 @@ from domain.model.utils.logging import app_logger
 from domain.model.utils.misc import get_env_var
 from domain.ports.notification_service import (
     ChunkNotificationService,
+    EmailNotificationService,
     ValidationNotificationService,
 )
 
@@ -62,4 +63,18 @@ class ValidationNotificationServiceSNS(ValidationNotificationService):
                 f"Failed to send notification to topic: {self.topic_name}: {e}"
             )
             return False
+        return True
+
+
+class EmailNotificationServiceSNS(EmailNotificationService):
+    def send_notification(self, email: str, subject: str, body: str) -> bool:
+        sns_client = boto3.client("sns")
+
+        response = sns_client.publish(
+            TopicArn="arn:aws:sns:your-region:your-account-id:your-sns-topic",
+            Message=body,
+            Subject=subject,
+        )
+
+        print("Notification sent:", response)
         return True

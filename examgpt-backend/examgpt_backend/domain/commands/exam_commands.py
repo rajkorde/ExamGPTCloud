@@ -1,5 +1,5 @@
 from domain.model.core.exam import Exam, ExamState
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class SaveExam(BaseModel):
@@ -17,3 +17,9 @@ class GetExam(BaseModel):
 
 class NotifyValidateExam(BaseModel):
     exam_code: str
+
+
+class NotifyUserExamReady(BaseModel):
+    exam_code: str
+    email: EmailStr
+    bot_link: str

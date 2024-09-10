@@ -7,5 +7,12 @@ class ChunkNotificationService(ABC):
 
 
 class ValidationNotificationService(ABC):
+    @abstractmethod
     def send_notification(self, exam_code: str) -> bool:
+        return True
+
+
+class EmailNotificationService(ABC):
+    @abstractmethod
+    def send_notification(self, email: str, subject: str, body: str) -> bool:
         return True
