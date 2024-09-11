@@ -11,6 +11,7 @@ from domain.commands.exam_commands import GetExam
 from domain.commands.questions_commands import GetFlashCards, GetMultipleChoices
 from domain.model.core.exam import ExamState
 from domain.model.utils.logging import app_logger
+from domain.model.utils.misc import ChunksStats
 from entrypoints.helpers.utils import CommandRegistry, get_error, get_success
 from entrypoints.models.api_model import ValidateRequest
 
@@ -42,15 +43,35 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
         logger.error("Error: Exam not found")
         return get_error()
 
+    if exam.state == ExamState.READY:
+        logger.info("Exam is in READY state already.")
+        return get_success()
+
+    if exam.state != ExamState.CHUNKED:
+        logger.error("Error: Exam is not chunked")
+        return get_error(
+            f"Exam should be in chunked state before validate is invoked. Current state: {exam.state.value}"
+        )
+
     # Get chunks
     chunks = get_chunks_by_exam_code(
         GetChunksByExamCode(exam_code=exam_code), chunk_service
     )
-    if not chunks:
+    if not chunks or len(chunks) == 0:
         logger.error("Error: Chunks not found")
         return get_error()
 
     # Validate state of chunks
+    chunk_stats = ChunksStats(chunks)
+    logger.info(
+        f"\nTotal chunks: {len(chunks)}\n"
+        f"Total chunks without context: {len(chunks)-chunk_stats.total_chunks_with_context}\n"
+        f"Chunks with flash cards: {chunk_stats.chunks_with_flash_cards}\n"
+        f"Chunks with multiple choice: {chunk_stats.chunks_with_multiple_choice}\n"
+        f"Chunks with context ratio: {chunk_stats.chunks_with_context_ratio}\n"
+        f"Chunks with flash cards ratio: {chunk_stats.chunks_with_flash_cards_ratio}\n"
+        f"Chunks with multiple choice ratio: {chunk_stats.chunks_with_multiple_choice_ratio}\n"
+    )
 
     # Get QA
     flash_cards = get_flashcards(GetFlashCards(exam_code=exam_code), qa_service)
