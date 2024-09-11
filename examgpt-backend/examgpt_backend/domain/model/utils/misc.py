@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 
 from domain.model.core.chunk import TextChunk
+from domain.model.core.question import FlashCardEnhanced, MultipleChoiceEnhanced
 from domain.model.utils.logging import app_logger
 
 logger = app_logger.get_logger()
@@ -28,6 +29,20 @@ class ChunksStats:
         )
         self.chunks_with_multiple_choice_ratio = (
             self.chunks_with_multiple_choice / self.total_chunks_with_context
+        )
+
+
+class FlashCardsStats:
+    def __init__(self, flash_cards: list[FlashCardEnhanced]):
+        self.total_flash_cards = len(flash_cards)
+        self.chunk_count = len({flash_card.chunk_id for flash_card in flash_cards})
+
+
+class MultipleChoicesStats:
+    def __init__(self, multiple_choices: list[MultipleChoiceEnhanced]):
+        self.total_multiple_choices = len(multiple_choices)
+        self.chunk_count = len(
+            {multiple_choice.chunk_id for multiple_choice in multiple_choices}
         )
 
 

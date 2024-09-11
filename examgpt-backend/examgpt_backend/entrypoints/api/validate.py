@@ -11,7 +11,7 @@ from domain.commands.exam_commands import GetExam
 from domain.commands.questions_commands import GetFlashCards, GetMultipleChoices
 from domain.model.core.exam import ExamState
 from domain.model.utils.logging import app_logger
-from domain.model.utils.misc import ChunksStats
+from domain.model.utils.misc import ChunksStats, FlashCardsStats, MultipleChoicesStats
 from entrypoints.helpers.utils import CommandRegistry, get_error, get_success
 from entrypoints.models.api_model import ValidateRequest
 
@@ -88,7 +88,22 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
         logger.error("Error: Multiple choices not found")
         return get_error("No Multiple choices found")
 
+    flash_cards_stats = FlashCardsStats(flash_cards)
+    logger.info(
+        f"\nTotal flash cards: {flash_cards_stats.total_flash_cards}\n"
+        f"Processed chunk count for flash cards: {flash_cards_stats.chunk_count}\n"
+    )
+    multiple_choices_stats = MultipleChoicesStats(multiple_choices)
+    logger.info(
+        f"\nTotal multiple choices: {multiple_choices_stats.total_multiple_choices}\n"
+        f"Processed chunk count for multiple choices: {multiple_choices_stats.chunk_count}\n"
+    )
+
     # Set exam state to Ready
+    # processed_flashcard_ratio = chunk_stats.flash_cards_with_context_ratio
+    # processed_multiple_choice_ratio = chunk_stats.multiple_choices_with_context_ratio
+
+    # if processed_flashcard_ratio >= CHUNK_PROCESSED_RATIO and processed_multiple_choice_ratio >= CHUNK_PROCESSED_RATIO:
     processed_chunk_ratio = 0.3
     if processed_chunk_ratio >= CHUNK_PROCESSED_RATIO:
         exam_service.update_state(exam_code=exam_code, newstate=ExamState.READY)
