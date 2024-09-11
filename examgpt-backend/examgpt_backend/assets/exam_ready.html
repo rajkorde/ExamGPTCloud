@@ -44,6 +44,7 @@
     </style>
   </head>
   <body>
+    <h2>Good news!</h2>
     <p>Dear User,</p>
 
     <p>
@@ -64,7 +65,7 @@
       <tr>
         <td>
           <img
-            src="Telegram_Apple.png"
+            src="{{ ios_qr_code }}"
             alt="QR Code for Apple App Store"
             class="qr-code"
           />
@@ -77,7 +78,7 @@
         </td>
         <td>
           <img
-            src="Telegram_Google.png"
+            src="{{ android_qr_code }}"
             alt="QR Code for Google Play Store"
             class="qr-code"
           />
@@ -98,14 +99,16 @@
       </li>
       <li>
         Open the
-        <a href="https://t.me/RSKPythonExamGPTBot">ExamGPT Telegram Bot</a>
+        <a href="{{ bot_link }}">ExamGPT Telegram Bot</a>
         link.
       </li>
-      <li>Follow the instructions provided by the bot to start your exam.</li>
+      <li>
+        Follow the instructions provided by the bot to start your exam practice.
+      </li>
     </ol>
 
     <p>If you encounter any issues, please contact our support team.</p>
 
-    <p><b>Good luck,</b><br />Your ExamGPT Team</p>
+    <p>Good luck,<br />Your ExamGPT Team</p>
   </body>
 </html>

@@ -1,3 +1,4 @@
+import base64
 from pathlib import Path
 from typing import Optional
 
@@ -40,16 +41,30 @@ def notify_validate_exam(
     return notification_service.send_notification(command.exam_code)
 
 
+def _embed_image(image_path: str) -> str:
+    with open(image_path, "rb") as image_file:
+        encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
+    return f"data:image/png;base64,{encoded_string}"
+
+
 def _generate_email(exam_code: str, bot_link: str) -> str:
     template_dir = Path(__file__).resolve().parent.parent.parent / "assets"
     logger.debug(f"{template_dir=}")
     env = Environment(loader=FileSystemLoader(str(template_dir)))
 
+    ios_qr_embedded = _embed_image(str(Path(template_dir) / "Telegram_Apple.png"))
+    android_qr_embedded = _embed_image(str(Path(template_dir) / "Telegram_Google.png"))
+
     # Load the template
     template = env.get_template("exam_ready.html")
 
     # Render the template with the provided data
-    output = template.render(exam_code=exam_code, bot_link=bot_link)
+    output = template.render(
+        exam_code=exam_code,
+        bot_link=bot_link,
+        ios_qr_code=ios_qr_embedded,
+        android_qr_code=android_qr_embedded,
+    )
 
     return output
 
