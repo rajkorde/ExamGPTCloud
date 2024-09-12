@@ -16,6 +16,7 @@ from domain.chat.handlers import (
     start_mc,
     whoami,
 )
+from domain.chat.helper import ChatServices
 from domain.command_handlers.environments_commands_handler import get_parameter
 from domain.commands.environment_commands import GetParameter
 from domain.model.utils.logging import app_logger
@@ -132,6 +133,12 @@ async def async_handler(event: dict[Any, Any], context: Any):
 
 
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
+    command_registry = CommandRegistry()
+    exam_service = command_registry.get_exam_service()
+    qa_service = command_registry.get_qa_service()
+    content_service = command_registry.get_content_service()
+    ChatServices.initialize(exam_service, qa_service, content_service)
+
     logger.info("Starting chat server.")
     loop = asyncio.get_event_loop()
     try:

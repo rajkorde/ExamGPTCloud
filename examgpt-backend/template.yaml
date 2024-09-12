@@ -306,9 +306,12 @@ Resources:
       Environment:
         Variables:
           CHAT_BUCKET: !Ref ChatBucket
+          QA_TABLE: !Ref QATable
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref ChatBucket
+        - DynamoDBCrudPolicy:
+            TableName: !Ref QATable
         - Statement:
             - Action:
                 - ssm:GetParameter
