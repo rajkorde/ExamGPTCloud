@@ -11,7 +11,7 @@ from domain.commands.exam_commands import GetExam
 from domain.commands.questions_commands import GetFlashCards, GetMultipleChoices
 from domain.model.core.exam import ExamState
 from domain.model.utils.logging import app_logger
-from domain.model.utils.misc import ChunksStats, FlashCardsStats, MultipleChoicesStats
+from domain.model.utils.stats import ChunksStats, FlashCardsStats, MultipleChoicesStats
 from entrypoints.helpers.utils import CommandRegistry, get_error, get_success
 from entrypoints.models.api_model import ValidateRequest
 
