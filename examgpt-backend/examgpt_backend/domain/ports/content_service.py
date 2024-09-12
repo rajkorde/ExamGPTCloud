@@ -10,3 +10,8 @@ class ContentService(ABC):
     def download_file(
         self, source: str, destination: str, bucket_name: Optional[str] = None
     ) -> str: ...
+
+    @abstractmethod
+    def upload_file(
+        self, source: str, destination: str, bucket_name: Optional[str] = None
+    ) -> str: ...

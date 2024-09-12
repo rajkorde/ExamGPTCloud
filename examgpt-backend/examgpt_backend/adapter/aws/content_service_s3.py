@@ -55,3 +55,15 @@ class ContentServiceS3(ContentService):
             logger.error(e)
             raise e
         return destination
+
+    def upload_file(
+        self, source: str, destination: str, bucket_name: Optional[str] = None
+    ) -> str:
+        if not os.path.exists(source):
+            raise ValueError(f"Souce file does not exist: {source}")
+        try:
+            s3.upload_file(source, bucket_name, destination)
+        except ClientError as e:
+            logger.error(e)
+            raise e
+        return destination
