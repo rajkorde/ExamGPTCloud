@@ -10,7 +10,7 @@ from domain.model.utils.misc import get_env_var
 from domain.ports.content_service import ContentService
 
 s3 = boto3.client("s3")
-CONTENT_BUCKET_ENV_VAR: str = "CONTENT_BUCKET"
+BUCKET_ENV_VAR: str = "BUCKET_NAME"
 logger = app_logger.get_logger()
 
 
@@ -25,7 +25,7 @@ class ContentServiceS3(ContentService):
         self.s3 = boto3.client("s3")
 
     def create_upload_url(self, filename: str, expires_in: int = 3600) -> PreSignedUrl:
-        bucket_name = get_env_var(CONTENT_BUCKET_ENV_VAR)
+        bucket_name = get_env_var(BUCKET_ENV_VAR)
         try:
             response = s3.generate_presigned_post(
                 bucket_name,
@@ -47,8 +47,12 @@ class ContentServiceS3(ContentService):
     ) -> str:
         try:
             if not bucket_name:
-                logger.error("No bucket name provided in an S3 event request")
-                raise InvalidEnvironmentSetup(CONTENT_BUCKET_ENV_VAR)
+                bucket_name = get_env_var(BUCKET_ENV_VAR)
+                if not bucket_name:
+                    logger.error(
+                        "No bucket name provided in function call or in environment variable."
+                    )
+                    raise InvalidEnvironmentSetup(BUCKET_ENV_VAR)
             self.s3.download_file(bucket_name, source, destination)
             logger.debug(f"Downloaded filesize: {os.path.getsize(destination)}")
         except ClientError as e:
@@ -61,8 +65,15 @@ class ContentServiceS3(ContentService):
     ) -> str:
         if not os.path.exists(source):
             raise ValueError(f"Souce file does not exist: {source}")
+        if not bucket_name:
+            bucket_name = get_env_var(BUCKET_ENV_VAR)
+            if not bucket_name:
+                logger.error(
+                    "No bucket name provided in function call or in environment variable."
+                )
+                raise InvalidEnvironmentSetup(BUCKET_ENV_VAR)
         try:
-            s3.upload_file(source, bucket_name, destination)
+            self.s3.upload_file(source, bucket_name, destination)
         except ClientError as e:
             logger.error(e)
             raise e

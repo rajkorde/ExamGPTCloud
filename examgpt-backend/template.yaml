@@ -175,7 +175,7 @@ Resources:
       Timeout: 300
       Environment:
         Variables:
-          CONTENT_BUCKET: !Ref ContentBucket
+          BUCKET_NAME: !Ref ContentBucket
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref ContentBucket
@@ -305,7 +305,7 @@ Resources:
             RestApiId: !Ref ExamGPTRestApi
       Environment:
         Variables:
-          CHAT_BUCKET: !Ref ChatBucket
+          BUCKET_NAME: !Ref ChatBucket
           QA_TABLE: !Ref QATable
       Policies:
         - S3CrudPolicy:
