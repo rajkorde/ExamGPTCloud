@@ -2,12 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import json
-import os
 import traceback
 from typing import Any
 
-import boto3
-from botocore.exceptions import ClientError
 from domain.chat.handlers import (
     QUIZZING,
     cancel,
@@ -17,10 +14,13 @@ from domain.chat.handlers import (
     whoami,
 )
 from domain.chat.helper import ChatServices
+from domain.command_handlers.content_commands_handler import download_file, upload_file
 from domain.command_handlers.environments_commands_handler import get_parameter
+from domain.commands.content_commands import DownloadFile, UploadFile
 from domain.commands.environment_commands import GetParameter
 from domain.model.utils.logging import app_logger
-from entrypoints.helpers.utils import CommandRegistry
+from domain.model.utils.misc import get_env_var
+from entrypoints.helpers.utils import CommandRegistry, get_error, get_success
 from telegram import TelegramObject, Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -33,46 +33,53 @@ from telegram.ext import (
 
 logger = app_logger.get_logger()
 tg_bot_token_name = "/examgpt/TG_BOT_TOKEN"
-s3 = boto3.client("s3")
-bucket_name = os.environ["CHAT_BUCKET"]
+BUCKET_NAME_ENV_VAR = "BUCKET_NAME"
 
 
-def log_pkl_filesize(message: str, filename: str):
-    if os.path.exists(filename):
-        logger.debug(f"{message}: {os.path.getsize(filename)}")
-    else:
-        logger.debug(f"{message}: File doesnt exist yet")
+# def log_pkl_filesize(message: str, filename: str):
+#     if os.path.exists(filename):
+#         logger.debug(f"{message}: {os.path.getsize(filename)}")
+#     else:
+#         logger.debug(f"{message}: File doesnt exist yet")
 
 
-def upload_file(source: str, destination: str, bucket_name: str):
-    if not os.path.exists(source):
-        return
-    try:
-        s3.upload_file(source, bucket_name, destination)
-    except ClientError as e:
-        logger.error(e)
-        raise e
-    return destination
+# def upload_file(source: str, destination: str, bucket_name: str):
+#     if not os.path.exists(source):
+#         return
+#     try:
+#         s3.upload_file(source, bucket_name, destination)
+#     except ClientError as e:
+#         logger.error(e)
+#         raise e
+#     return destination
 
 
-def download_file(source: str, destination: str, bucket_name: str) -> bool:
-    try:
-        s3.download_file(bucket_name, source, destination)
-    except ClientError as e:
-        if (
-            "Error" in e.response
-            and "Code" in e.response["Error"]
-            and e.response["Error"]["Code"] == "404"
-        ):
-            logger.debug("Chat File does not exist remotely.")
-        else:
-            logger.error(e)
-            raise e
-    return os.path.exists(destination)
+# def download_file(source: str, destination: str, bucket_name: str) -> bool:
+#     try:
+#         s3.download_file(bucket_name, source, destination)
+#     except ClientError as e:
+#         if (
+#             "Error" in e.response
+#             and "Code" in e.response["Error"]
+#             and e.response["Error"]["Code"] == "404"
+#         ):
+#             logger.debug("Chat File does not exist remotely.")
+#         else:
+#             logger.error(e)
+#             raise e
+#     return os.path.exists(destination)
 
 
 async def async_handler(event: dict[Any, Any], context: Any):
     env_service = CommandRegistry().get_environment_service()
+    content_service = CommandRegistry().get_content_service()
+    bucket_name = get_env_var(BUCKET_NAME_ENV_VAR)
+    if not bucket_name:
+        logger.error(
+            "No bucket name provided in function call or in environment variable."
+        )
+        return get_error()
+
     tg_bot_token = get_parameter(
         GetParameter(name=tg_bot_token_name, is_encrypted=True), env_service
     )
@@ -82,8 +89,14 @@ async def async_handler(event: dict[Any, Any], context: Any):
 
     pickle_file_path = "/tmp/chat.pkl"
     pickle_object_key = f"chat/{user_id}/chat.pkl"
+
     download_file(
-        source=pickle_object_key, destination=pickle_file_path, bucket_name=bucket_name
+        DownloadFile(
+            source=pickle_object_key,
+            destination=pickle_file_path,
+            bucket_name=bucket_name,
+        ),
+        content_service,
     )
 
     application = (
@@ -126,13 +139,17 @@ async def async_handler(event: dict[Any, Any], context: Any):
         await application.process_update(update)
         await application.update_persistence()
         upload_file(
-            source=pickle_file_path,
-            destination=pickle_object_key,
-            bucket_name=bucket_name,
+            UploadFile(
+                source=pickle_file_path,
+                destination=pickle_object_key,
+                bucket_name=bucket_name,
+            ),
+            content_service,
         )
 
 
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
+    logger.info(f"{event=}")
     command_registry = CommandRegistry()
     exam_service = command_registry.get_exam_service()
     qa_service = command_registry.get_qa_service()
@@ -146,5 +163,5 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     except Exception as e:
         traceback.print_exc()
         logger.error(e)
-        return {"statusCode": 500, "body": json.dumps("Something went wrong")}
-    return {"statusCode": 200, "body": json.dumps("Message processed successfully")}
+        return get_error()
+    return get_success("Message processed successfully")
