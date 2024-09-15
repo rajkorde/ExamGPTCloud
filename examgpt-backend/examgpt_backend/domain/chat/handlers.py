@@ -1,5 +1,8 @@
 from typing import NamedTuple, Optional
 
+from domain.chat.helper import ChatBotDataState, ChatServices
+from domain.command_handlers.exam_commands_handler import get_exam
+from domain.commands.exam_commands import GetExam
 from domain.model.utils.logging import app_logger
 from pydantic import BaseModel, Field
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
@@ -77,6 +80,39 @@ def command_parser(args: list[str]) -> CommandArgs:
         topic = " ".join(args)
 
     return CommandArgs(question_count=count, question_topic=topic)
+
+
+async def exam(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not context.args or len(context.args) == 0:
+        error_msg = """
+No exam code provided.
+/exam exam_code: Initialize an exam for a given code
+"""
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=error_msg)
+        return
+
+    exam_code = context.args[0]
+    exam_service = ChatServices.exam_service
+    if not exam_service:
+        logger.error("Chat service not initialized")
+        error_msg = "Something went wrong. Please try again later."
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=error_msg)
+        return
+
+    exam_obj = get_exam(command=GetExam(exam_code=exam_code), exam_service=exam_service)
+
+    if not exam_obj:
+        logger.warning("User provided incorrect exam code.")
+        error_msg = f"No exam found for this exam code. Please provide a valid exam code: {exam_code}"
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=error_msg)
+        return
+
+    chat_state = ChatBotDataState(exam_code=exam_code)
+    chat_payload = {update.effective_chat.id: chat_state.model_dump()}
+    context.bot_data.update(chat_payload)
+
+    message = f"Welcome to {exam_obj.name} practice!"
+    await context.bot.send_message(chat_id=update.effective_chat.id, text=message)
 
 
 async def start_mc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
@@ -236,11 +272,3 @@ Welcome to ExamGPT!
 You can also ask general questions for the exam to refresh your memory.
 """
     await context.bot.send_message(chat_id=update.effective_chat.id, text=welcome_text)
-
-
-async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    reply_text = """
-Rajesh Korde
-https://www.linkedin.com/in/rkorde/
-"""
-    await context.bot.send_message(chat_id=update.effective_chat.id, text=reply_text)

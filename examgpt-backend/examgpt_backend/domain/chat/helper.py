@@ -1,6 +1,5 @@
 from typing import Optional
 
-from domain.ports.content_service import ContentService
 from domain.ports.data_service import ExamService, QAService
 from pydantic import BaseModel, Field
 
@@ -24,18 +23,15 @@ class ChatBotDataState(BaseModel):
 class ChatServices:
     exam_service: Optional[ExamService] = None
     qa_service: Optional[QAService] = None
-    content_service: Optional[ContentService] = None
 
     @classmethod
     def initialize(
         cls,
         exam_service: ExamService,
         qa_service: QAService,
-        content_service: ContentService,
     ):
         cls.exam_service = exam_service
         cls.qa_service = qa_service
-        cls.content_service = content_service
 
 
 class ChatHelper:

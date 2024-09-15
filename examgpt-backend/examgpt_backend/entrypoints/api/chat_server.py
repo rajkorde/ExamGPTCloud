@@ -8,10 +8,10 @@ from typing import Any
 from domain.chat.handlers import (
     QUIZZING,
     cancel,
+    exam,
     quiz_mc,
     start,
     start_mc,
-    whoami,
 )
 from domain.chat.helper import ChatServices
 from domain.command_handlers.content_commands_handler import download_file, upload_file
@@ -74,6 +74,7 @@ async def async_handler(event: dict[Any, Any], context: Any):
     env_service = CommandRegistry().get_environment_service()
     content_service = CommandRegistry().get_content_service()
     bucket_name = get_env_var(BUCKET_NAME_ENV_VAR)
+
     if not bucket_name:
         logger.error(
             "No bucket name provided in function call or in environment variable."
@@ -130,8 +131,7 @@ async def async_handler(event: dict[Any, Any], context: Any):
     )
 
     application.add_handler(mc_handler)
-    # TODO: Remove whoami
-    application.add_handler(CommandHandler("whoami", whoami))
+    application.add_handler(CommandHandler("exam", exam))
     application.add_handler(CommandHandler(["start", "help"], start))
 
     # Process the update
@@ -153,8 +153,7 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     command_registry = CommandRegistry()
     exam_service = command_registry.get_exam_service()
     qa_service = command_registry.get_qa_service()
-    content_service = command_registry.get_content_service()
-    ChatServices.initialize(exam_service, qa_service, content_service)
+    ChatServices.initialize(exam_service, qa_service)
 
     logger.info("Starting chat server.")
     loop = asyncio.get_event_loop()
