@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import NamedTuple, Optional
 
 from domain.chat.helper import ChatBotDataState, ChatServices
@@ -57,28 +59,47 @@ the_question = MultipleChoice(
 )
 
 
-class CommandArgs(NamedTuple):
+class CommandParser(NamedTuple):
     question_count: int
     question_topic: Optional[str]
 
+    @staticmethod
+    def _parse_command(args: list[str]) -> CommandParser:
+        def is_int(s: str) -> bool:
+            return s.strip().lstrip("-+").isdigit()
 
-def command_parser(args: list[str]) -> CommandArgs:
-    def is_int(s: str) -> bool:
-        return s.strip().lstrip("-+").isdigit()
+        count = 1
+        topic = None
 
-    count = 1
-    topic = None
+        if is_int(args[0]):
+            count = int(args[0])
+            if count < 0 or count > 25:
+                raise ValueError("Invalid command format")
+            if len(args) > 1:
+                topic = " ".join(args[1:])
+        else:
+            topic = " ".join(args)
 
-    if is_int(args[0]):
-        count = int(args[0])
-        if count < 0 or count > 25:
-            raise ValueError("Invalid command format")
-        if len(args) > 1:
-            topic = " ".join(args[1:])
-    else:
-        topic = " ".join(args)
+        return CommandParser(question_count=count, question_topic=topic)
 
-    return CommandArgs(question_count=count, question_topic=topic)
+    @staticmethod
+    async def parse(
+        update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> Optional[CommandParser]:
+        # Parse question count and topic here
+        if context.args:
+            try:
+                command = CommandParser._parse_command(context.args)
+            except Exception:
+                reply_text = f"Incorrect format. Correct format is {update.message.text.split()[0]} [question_count] [topic]"
+                await context.bot.send_message(
+                    chat_id=update.effective_chat.id, text=reply_text
+                )
+                return None
+        else:
+            command = CommandParser(question_count=1, question_topic=None)
+
+        return command
 
 
 async def exam(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -99,30 +120,12 @@ async def start_mc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Start the conversation and ask user for input."""
 
     # Parse question count and topic here
-    if context.args:
-        try:
-            command = command_parser(context.args)
-        except Exception:
-            reply_text = (
-                "Incorrect format. Correct format is /mc [question_count] [topic]"
-            )
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id, text=reply_text
-            )
-            return ConversationHandler.END
-    else:
-        command = CommandArgs(question_count=1, question_topic=None)
-
-    chat_payload = ChatBotDataState(**context.bot_data[update.effective_chat.id])
-
-    if not chat_payload:
-        error_msg = "Something went wrong. Please try again later."
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=error_msg)
+    command = await CommandParser.parse(update, context)
+    if not command:
         return ConversationHandler.END
 
-    if not chat_payload.exam_code:
-        error_msg = "No exam code provided. Did you run /exam command?"
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=error_msg)
+    chat_payload = await ChatBotDataState.get_bot_data(update, context)
+    if not chat_payload or not chat_payload.exam_code:
         return ConversationHandler.END
 
     try:
@@ -149,7 +152,7 @@ async def start_mc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     chat_payload.total_question_count = question_count
     chat_payload.asked_question_count = 0
     chat_payload.correct_answer_count = 0
-    chat_payload.question_list = [question.qa_id for question in questions]
+    chat_payload.question_list = [question.dict() for question in questions]
 
     chat_payload = {update.effective_chat.id: chat_payload.model_dump()}
     context.bot_data.update(chat_payload)

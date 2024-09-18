@@ -1,4 +1,6 @@
-from typing import Optional
+from __future__ import annotations
+
+from typing import Any, Optional
 
 from domain.command_handlers.exam_commands_handler import get_exam
 from domain.command_handlers.questions_commands_handler import (
@@ -19,7 +21,7 @@ logger = app_logger.get_logger()
 
 class ChatBotDataState(BaseModel):
     exam_code: Optional[str] = Field(default=None)
-    question_list: Optional[list[str]] = Field(default=None)
+    question_list: Optional[list[dict[str, Any]]] = Field(default=None)
     total_question_count: Optional[int] = Field(default=None)
     asked_question_count: Optional[int] = Field(default=None)
     correct_answer_count: Optional[int] = Field(default=None)
@@ -31,6 +33,28 @@ class ChatBotDataState(BaseModel):
         self.correct_answer_count = None
         self.total_question_count = None
         self.last_answer = None
+
+    @classmethod
+    async def get_bot_data(
+        cls, update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> Optional[ChatBotDataState]:
+        chat_payload = ChatBotDataState(**context.bot_data[update.effective_chat.id])
+
+        if not chat_payload:
+            error_msg = "Something went wrong. Please try again later."
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id, text=error_msg
+            )
+            return None
+
+        if not chat_payload.exam_code:
+            error_msg = "No exam code provided. Did you run /exam command?"
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id, text=error_msg
+            )
+            return None
+
+        return chat_payload
 
 
 class ChatServices:
