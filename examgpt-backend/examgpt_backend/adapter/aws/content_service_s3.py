@@ -57,6 +57,13 @@ class ContentServiceS3(ContentService):
             logger.debug(f"Downloaded filesize: {os.path.getsize(destination)}")
         except ClientError as e:
             logger.error(e)
+            if (
+                "Error" in e.response
+                and "Code" in e.response["Error"]
+                and e.response["Error"]["Code"] == "404"
+            ):
+                logger.warning("The object does not exist.")
+                return ""
             raise e
         return destination
 

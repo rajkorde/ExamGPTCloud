@@ -295,7 +295,7 @@ Resources:
       CodeUri: examgpt_backend/
       Handler: entrypoints.api.chat_server.handler
       Timeout: 300
-      MemorySize: 128
+      MemorySize: 512
       Events:
         APIEvent:
           Type: Api
@@ -307,11 +307,14 @@ Resources:
         Variables:
           BUCKET_NAME: !Ref ChatBucket
           QA_TABLE: !Ref QATable
+          EXAM_TABLE: !Ref ExamTable
       Policies:
         - S3CrudPolicy:
             BucketName: !Ref ChatBucket
         - DynamoDBCrudPolicy:
             TableName: !Ref QATable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ExamTable
         - Statement:
             - Action:
                 - ssm:GetParameter

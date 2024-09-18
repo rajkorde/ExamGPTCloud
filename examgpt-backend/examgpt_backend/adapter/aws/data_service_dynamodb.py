@@ -63,6 +63,9 @@ class ExamServiceDynamoDB(ExamService):
         try:
             response = self.table.get_item(Key={"exam_code": exam_code})
             item = response.get("Item")
+            if not item:
+                logger.warning(f"No item found for exam code: {exam_code}")
+                return None
             item["state"] = ExamState(item["state"])
             if item:
                 return Exam(**item)

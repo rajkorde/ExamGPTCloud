@@ -36,40 +36,6 @@ tg_bot_token_name = "/examgpt/TG_BOT_TOKEN"
 BUCKET_NAME_ENV_VAR = "BUCKET_NAME"
 
 
-# def log_pkl_filesize(message: str, filename: str):
-#     if os.path.exists(filename):
-#         logger.debug(f"{message}: {os.path.getsize(filename)}")
-#     else:
-#         logger.debug(f"{message}: File doesnt exist yet")
-
-
-# def upload_file(source: str, destination: str, bucket_name: str):
-#     if not os.path.exists(source):
-#         return
-#     try:
-#         s3.upload_file(source, bucket_name, destination)
-#     except ClientError as e:
-#         logger.error(e)
-#         raise e
-#     return destination
-
-
-# def download_file(source: str, destination: str, bucket_name: str) -> bool:
-#     try:
-#         s3.download_file(bucket_name, source, destination)
-#     except ClientError as e:
-#         if (
-#             "Error" in e.response
-#             and "Code" in e.response["Error"]
-#             and e.response["Error"]["Code"] == "404"
-#         ):
-#             logger.debug("Chat File does not exist remotely.")
-#         else:
-#             logger.error(e)
-#             raise e
-#     return os.path.exists(destination)
-
-
 async def async_handler(event: dict[Any, Any], context: Any):
     env_service = CommandRegistry().get_environment_service()
     content_service = CommandRegistry().get_content_service()
