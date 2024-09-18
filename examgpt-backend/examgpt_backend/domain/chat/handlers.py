@@ -1,8 +1,7 @@
 from typing import NamedTuple, Optional
 
 from domain.chat.helper import ChatBotDataState, ChatServices
-from domain.command_handlers.exam_commands_handler import get_exam
-from domain.commands.exam_commands import GetExam
+from domain.model.utils.exceptions import NotEnoughQuestionsInExam
 from domain.model.utils.logging import app_logger
 from pydantic import BaseModel, Field
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
@@ -83,31 +82,12 @@ def command_parser(args: list[str]) -> CommandArgs:
 
 
 async def exam(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    if not context.args or len(context.args) == 0:
-        error_msg = """
-No exam code provided.
-/exam exam_code: Initialize an exam for a given code
-"""
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=error_msg)
-        return
-
-    exam_code = context.args[0]
-    exam_service = ChatServices.exam_service
-    if not exam_service:
-        logger.error("Chat service not initialized")
-        error_msg = "Something went wrong. Please try again later."
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=error_msg)
-        return
-
-    exam_obj = get_exam(command=GetExam(exam_code=exam_code), exam_service=exam_service)
-
+    exam_obj = await ChatServices.get_exam(update=update, context=context)
     if not exam_obj:
-        logger.warning("User provided incorrect exam code.")
-        error_msg = f"No exam found for this exam code. Please provide a valid exam code: {exam_code}"
-        await context.bot.send_message(chat_id=update.effective_chat.id, text=error_msg)
         return
 
-    chat_state = ChatBotDataState(exam_code=exam_code)
+    chat_state = ChatBotDataState(exam_code=exam_obj.exam_code)
+
     chat_payload = {update.effective_chat.id: chat_state.model_dump()}
     context.bot_data.update(chat_payload)
 
@@ -133,32 +113,45 @@ async def start_mc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     else:
         command = CommandArgs(question_count=1, question_topic=None)
 
-    logger.info(
-        f"Multiple Choice Scenario. Count: {command.question_count}, Topic:{command.question_topic}"
-    )
+    chat_payload = ChatBotDataState(**context.bot_data[update.effective_chat.id])
 
-    # if command.question_count > chat.get_question_count_mc():
-    MAX_QUESTIONS = 5
-    if command.question_count > MAX_QUESTIONS:
-        await context.bot.send_message(
-            chat_id=update.effective_chat.id,
-            text=f"Max allowed questions are {MAX_QUESTIONS}",
-        )
+    if not chat_payload:
+        error_msg = "Something went wrong. Please try again later."
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=error_msg)
         return ConversationHandler.END
 
+    if not chat_payload.exam_code:
+        error_msg = "No exam code provided. Did you run /exam command?"
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=error_msg)
+        return ConversationHandler.END
+
+    try:
+        questions = await ChatServices.get_multiplechoices(
+            chat_payload.exam_code, command.question_count, update, context
+        )
+    except NotEnoughQuestionsInExam as e:
+        error_msg = f"No enough questions in this exam. Max questions allowed: {e.max_questions}"
+        await context.bot.send_message(chat_id=update.effective_chat.id, text=error_msg)
+        return ConversationHandler.END
+
+    if not questions or len(questions) == 0:
+        return ConversationHandler.END
+
+    logger.info(
+        "Multiple Choice Scenario.",
+        f"Count: {command.question_count}, ",
+        f"Topic: {command.question_topic}, ",
+        f"Exam Code: {chat_payload.exam_code}, ",
+        f"Total Questions: {len(questions)}",
+    )
+
     question_count = command.question_count
-    chat_id = update.effective_chat.id
+    chat_payload.total_question_count = question_count
+    chat_payload.asked_question_count = 0
+    chat_payload.correct_answer_count = 0
+    chat_payload.question_list = [question.qa_id for question in questions]
 
-    chat_payload = {
-        chat_id: {
-            "total_question_count": question_count,
-            "asked_question_count": 0,
-            "correct_answer_count": 0,
-            "question_list": [],
-            "last_answer": "X",
-        }
-    }
-
+    chat_payload = {update.effective_chat.id: chat_payload.model_dump()}
     context.bot_data.update(chat_payload)
 
     question_str = "question" if question_count == 1 else "questions"

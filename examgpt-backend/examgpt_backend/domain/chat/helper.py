@@ -1,7 +1,20 @@
 from typing import Optional
 
+from domain.command_handlers.exam_commands_handler import get_exam
+from domain.command_handlers.questions_commands_handler import (
+    get_multiplechoices,
+)
+from domain.commands.exam_commands import GetExam
+from domain.commands.questions_commands import GetMultipleChoices
+from domain.model.core.exam import Exam
+from domain.model.core.question import MultipleChoiceEnhanced
+from domain.model.utils.logging import app_logger
 from domain.ports.data_service import ExamService, QAService
 from pydantic import BaseModel, Field
+from telegram import Update
+from telegram.ext import ContextTypes
+
+logger = app_logger.get_logger()
 
 
 class ChatBotDataState(BaseModel):
@@ -33,7 +46,82 @@ class ChatServices:
         cls.exam_service = exam_service
         cls.qa_service = qa_service
 
+    @classmethod
+    async def get_exam(
+        cls,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+    ) -> Optional[Exam]:
+        if not context.args or len(context.args) == 0:
+            error_msg = """
+No exam code provided.
+/exam exam_code: Initialize an exam for a given code
+"""
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id, text=error_msg
+            )
+            return None
 
-class ChatHelper:
-    def __init__(self, state: ChatBotDataState):
-        self.state = state
+        exam_code = context.args[0]
+        exam_service = ChatServices.exam_service
+        if not exam_service:
+            logger.error("Chat service not initialized")
+            error_msg = "Something went wrong. Please try again later."
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id, text=error_msg
+            )
+            return None
+
+        exam_obj = get_exam(
+            command=GetExam(exam_code=exam_code), exam_service=exam_service
+        )
+
+        if not exam_obj:
+            logger.warning("User provided incorrect exam code.")
+            error_msg = f"No exam found for this exam code. Please provide a valid exam code: {exam_code}"
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id, text=error_msg
+            )
+            return None
+
+        return exam_obj
+
+    @classmethod
+    async def get_multiplechoices(
+        cls,
+        exam_code: str,
+        question_count: int,
+        update: Update,
+        context: ContextTypes.DEFAULT_TYPE,
+    ) -> Optional[list[MultipleChoiceEnhanced]]:
+        qa_service = ChatServices.qa_service
+        if not qa_service:
+            logger.error("Chat service not initialized")
+            error_msg = "Something went wrong. Please try again later."
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id, text=error_msg
+            )
+            return None
+
+        questions = get_multiplechoices(
+            command=GetMultipleChoices(exam_code=exam_code, n=question_count),
+            data_service=qa_service,
+        )
+
+        if not questions or len(questions) == 0:
+            error_msg = f"No questions found for this exam: {exam_code}"
+            logger.error(error_msg)
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id, text=error_msg
+            )
+            return None
+
+        if len(questions) != question_count:
+            error_msg = "Something went wrong. Please try again later."
+            logger.error(error_msg)
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id, text=error_msg
+            )
+            return None
+
+        return questions

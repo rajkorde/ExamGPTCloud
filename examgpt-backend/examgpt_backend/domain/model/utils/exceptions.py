@@ -53,6 +53,9 @@ class NotEnoughInformationInContext(BaseException):
 class NotEnoughQuestionsInExam(BaseException):
     """Raised when there are not enough questions in an exam"""
 
-    def __init__(self, exam_code: str):
-        message: str = f"Not enough questions in exam: {exam_code}"
+    def __init__(self, exam_code: str, max_questions: int):
+        message: str = (
+            f"Not enough questions in exam: {exam_code}. Max questions: {max_questions}"
+        )
         super().__init__(message=message)
+        self.max_questions = max_questions

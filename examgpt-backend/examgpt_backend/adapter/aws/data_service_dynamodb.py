@@ -218,7 +218,9 @@ class QAServiceDynamodb(QAService):
 
         if n > len(flashcards):
             logger.warning(f"Requested {n} flashcards but only {len(flashcards)} found")
-            raise NotEnoughQuestionsInExam(exam_code=exam_code)
+            raise NotEnoughQuestionsInExam(
+                exam_code=exam_code, max_questions=len(flashcards)
+            )
 
         return random.sample(flashcards, n) if n > 0 else flashcards
 
@@ -240,6 +242,8 @@ class QAServiceDynamodb(QAService):
             logger.warning(
                 f"Requested {n} multiple choice questions but only {len(multiplechoices)} found"
             )
-            raise NotEnoughQuestionsInExam(exam_code=exam_code)
+            raise NotEnoughQuestionsInExam(
+                exam_code=exam_code, max_questions=len(multiplechoices)
+            )
 
         return random.sample(multiplechoices, n) if n > 0 else multiplechoices
