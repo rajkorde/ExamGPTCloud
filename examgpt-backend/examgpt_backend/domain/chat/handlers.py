@@ -235,14 +235,21 @@ async def quiz_mc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def completed_mc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     chat_id = update.effective_chat.id
 
-    try:
-        chat_payload = context.bot_data[chat_id]
-    except Exception:
-        logger.error("Couldn't not find payload in bot data for {chat_id}")
-        return await error(update, context)
+    chat_payload = await ChatBotDataState.get_bot_data(update, context)
+    if not chat_payload or not chat_payload.exam_code:
+        return ConversationHandler.END
+    assert chat_payload.question_list is not None
+    assert chat_payload.total_question_count is not None
+    assert chat_payload.asked_question_count is not None
+    assert chat_payload.correct_answer_count is not None
+    assert chat_payload.last_answer is not None
 
-    correct = chat_payload["correct_answer_count"]
-    total = chat_payload["total_question_count"]
+    correct = chat_payload.correct_answer_count
+    total = chat_payload.total_question_count
+
+    chat_payload.reset()
+    context.bot_data.update({chat_id: chat_payload.model_dump()})
+
     reply_text = f"You got {correct} out of {total} right!"
 
     await update.message.reply_text(reply_text, reply_markup=ReplyKeyboardRemove())
