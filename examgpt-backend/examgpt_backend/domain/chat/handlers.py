@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import NamedTuple, Optional
 
 from domain.chat.helper import ChatBotDataState, ChatServices
+from domain.model.core.question import MultipleChoiceEnhanced
 from domain.model.utils.exceptions import NotEnoughQuestionsInExam
 from domain.model.utils.logging import app_logger
 from pydantic import BaseModel, Field
@@ -152,6 +153,7 @@ async def start_mc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     chat_payload.total_question_count = question_count
     chat_payload.asked_question_count = 0
     chat_payload.correct_answer_count = 0
+    chat_payload.last_answer = "X"
     chat_payload.question_list = [question.dict() for question in questions]
 
     chat_payload = {update.effective_chat.id: chat_payload.model_dump()}
@@ -177,52 +179,55 @@ async def start_mc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def quiz_mc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Start the conversation and ask user for input."""
 
+    chat_payload = await ChatBotDataState.get_bot_data(update, context)
+    if not chat_payload or not chat_payload.exam_code:
+        return ConversationHandler.END
+
     chat_id = update.effective_chat.id
-
-    try:
-        chat_payload = context.bot_data[chat_id]
-    except Exception:
-        logger.error("Couldn't not find payload in bot data for {chat_id}")
-        return await error(update, context)
-
-    last_answer = chat_payload["last_answer"]
     user_answer = update.effective_message.text
 
-    if not last_answer == "X":
-        if user_answer == last_answer:
+    assert chat_payload.question_list is not None
+    assert chat_payload.total_question_count is not None
+    assert chat_payload.asked_question_count is not None
+    assert chat_payload.correct_answer_count is not None
+    assert chat_payload.last_answer is not None
+
+    if not chat_payload.last_answer == "X":
+        if user_answer == chat_payload.last_answer:
             await update.message.reply_text("Correct! ✅")
-            chat_payload["correct_answer_count"] += 1
-            context.bot_data.update({chat_id: chat_payload})
+            chat_payload.correct_answer_count += 1
+            context.bot_data.update({chat_id: chat_payload.model_dump()})
         else:
             await update.message.reply_text(
-                f"Incorrect! The correct answer is {last_answer}"
+                f"Incorrect! The correct answer is {chat_payload.last_answer}"
             )
 
-    if chat_payload["asked_question_count"] >= chat_payload["total_question_count"]:
+    if chat_payload.asked_question_count >= chat_payload.total_question_count:
         return await completed_mc(update, context)
 
-    while True:
-        multiple_choice_qa = the_question
-        if not multiple_choice_qa:
-            logger.error("No multiple choice questions found.")
-            return await error(update, context)
-        # if multiple_choice_qa.chunk_id not in question_list:
-        #     break
-        break
+    # while True:
+    #     multiple_choice_qa = the_question
+    #     if not multiple_choice_qa:
+    #         logger.error("No multiple choice questions found.")
+    #         return await error(update, context)
+    #     # if multiple_choice_qa.chunk_id not in question_list:
+    #     #     break
+    #     break
 
-    question = multiple_choice_qa.question
-    choices = "\n".join([f"{k}: {v}" for k, v in multiple_choice_qa.choices.items()])
+    question_dict = chat_payload.question_list[chat_payload.asked_question_count]
+    question_obj = MultipleChoiceEnhanced(**question_dict)
+    question = question_obj.question
+    choices = "\n".join([f"{k}: {v}" for k, v in question_obj.choices.items()])
 
     await update.message.reply_text(
         f"{question}\n{choices}",
         reply_markup=answer_markup_mc,
     )
 
-    chat_payload["asked_question_count"] += 1
-    chat_payload["last_answer"] = multiple_choice_qa.answer
-    # chat_payload["question_list"].append(multiple_choice_qa.chunk_id)
+    chat_payload.asked_question_count += 1
+    chat_payload.last_answer = question_obj.answer
 
-    context.bot_data.update({chat_id: chat_payload})
+    context.bot_data.update({chat_id: chat_payload.model_dump()})
 
     return QUIZZING
 
