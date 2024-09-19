@@ -1,10 +1,6 @@
-import base64
-
-# from email import encoders
-# from email.mime.base import MIMEBase
-# from email.mime.image import MIMEImage
-# from email.mime.multipart import MIMEMultipart
-# from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from pathlib import Path
 from typing import Optional
 
@@ -45,21 +41,10 @@ def notify_validate_exam(
     return notification_service.send_notification(command.exam_code)
 
 
-def _embed_image(image_path: str) -> str:
-    with open(image_path, "rb") as image_file:
-        encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
-    return f"data:image/png;base64,{encoded_string}"
-
-
 def _generate_email(exam_code: str, bot_link: str) -> str:
     template_dir = Path(__file__).resolve().parent.parent.parent / "assets"
     logger.debug(f"{template_dir=}")
     env = Environment(loader=FileSystemLoader(str(template_dir)))
-
-    ios_qr_embedded = _embed_image(str(Path(template_dir) / "Telegram_Apple.png"))
-    android_qr_embedded = _embed_image(str(Path(template_dir) / "Telegram_Google.png"))
-
-    logger.debug(f"{ios_qr_embedded=}")
 
     # Load the template
     template = env.get_template("exam_ready.html")
@@ -68,8 +53,6 @@ def _generate_email(exam_code: str, bot_link: str) -> str:
     output = template.render(
         exam_code=exam_code,
         bot_link=bot_link,
-        ios_qr_code=ios_qr_embedded,
-        android_qr_code=android_qr_embedded,
     )
 
     return output
@@ -78,20 +61,34 @@ def _generate_email(exam_code: str, bot_link: str) -> str:
 def email_user_exam_ready(
     command: EmailUserExamReady, email_service: EmailService
 ) -> bool:
-    exam_code = command.exam_code
-    bot_link = command.bot_link
-
     sender = "Examiner <examiner@myexamgpt.com>"
     recipient = command.email
     subject = "Your exam is ready!"
-    body = _generate_email(exam_code, bot_link)
-    return email_service.send_email(sender, recipient, subject, body)
+    msg = MIMEMultipart("related")
 
+    msg["Subject"] = subject
+    msg["From"] = sender
+    msg["To"] = recipient
 
-# def email_user_exam_ready(
-#     command: EmailUserExamReady, email_service: EmailService
-# ) -> bool:
-#     msg = MIMEMultipart("related")
-#     msg['Subject'] = "Your exam is ready!"
-#     msg['From'] = sender
-#     msg['To'] = recipient
+    # Create the body of the email (HTML part)
+    body = _generate_email(command.exam_code, command.bot_link)
+    msg_body = MIMEMultipart("alternative")
+    body_html_part = MIMEText(body, "html")
+    msg_body.attach(body_html_part)
+    msg.attach(msg_body)
+
+    template_dir = Path(__file__).resolve().parent.parent.parent / "assets"
+
+    image_paths = {
+        "ios_qr_code": str(Path(template_dir) / "Telegram_Apple.png"),
+        "android_qr_code": str(Path(template_dir) / "Telegram_Google.png"),
+    }
+    for cid, image_path in image_paths.items():
+        with open(image_path, "rb") as img:
+            img_data = img.read()
+            image_part = MIMEImage(img_data)
+            image_part.add_header("Content-ID", f"<{cid}>")
+            image_part.add_header("Content-Disposition", "inline", filename=image_path)
+            msg.attach(image_part)
+
+    return email_service.send_email(sender, recipient, subject, msg.as_string())

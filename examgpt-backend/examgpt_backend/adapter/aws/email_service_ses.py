@@ -12,15 +12,10 @@ class EmailServiceSES(EmailService):
 
     def send_email(self, sender: str, recipient: str, subject: str, body: str) -> bool:
         try:
-            response = self.ses.send_email(
+            response = self.ses.send_raw_email(
                 Source=sender,
-                Destination={
-                    "ToAddresses": [recipient],
-                },
-                Message={
-                    "Subject": {"Data": subject, "Charset": "UTF-8"},
-                    "Body": {"Html": {"Data": body, "Charset": "UTF-8"}},
-                },
+                Destinations=[recipient],
+                RawMessage={"Data": body},
             )
             logger.info(f"Email sent! Message ID: {response['MessageId']}")
             return True
