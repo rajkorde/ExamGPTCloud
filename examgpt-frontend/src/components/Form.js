@@ -41,22 +41,6 @@ const Form = () => {
     }
   }
 
-  // const response = await fetch(apiUrl, { method: "POST", body: formData })
-  //   .then(response => {
-  //     const msg = response.ok ? "File uploaded." : "File upload failed!";
-  //     setMessage(msg);
-  //     setFontClass(response.ok ? "text-success" : "text-danger");
-  //     return response.ok;
-  //   })
-  //   .catch(error => {
-  //     console.error(error);
-  //     setMessage("File upload failed!");
-  //     setFontClass("text-danger");
-  //     return false;
-  //   });
-  // return true
-  // }
-
   const handleSubmit = async (event) => {
     setMessage("Processing...")
     setFontClass("text-muted");
@@ -77,11 +61,6 @@ const Form = () => {
       return
     }
 
-    // console.log("examName: ", examName, "email: ", email, "filename: ", filename);
-
-    // let examCode = ""
-    // let apiUrl = "";
-    // let fields = {};
     const requestBody = JSON.stringify({
       exam_name: examName,
       filenames: [filename.name],
@@ -102,7 +81,6 @@ const Form = () => {
       }
 
       const data = await response.json();
-      // setExamCode(data.exam_code);
       const apiUrl = data.urls[0].api_url;
       const fields = data.urls[0].fields;
       console.log("Exam code: ", data.exam_code);
@@ -131,40 +109,6 @@ const Form = () => {
       setMessage("Form submission failed!");
       setFontClass("text-danger");
     }
-
-    // fetch(backendUrl, {
-    //   method: "POST",
-    //   headers: { "Content-Type": "application/json" },
-    //   body: requestBody,
-    //   mode: "cors",
-    // })
-    //   .then(response => response.ok ? response.json() : Promise.reject("Form submission failed!"))
-    //   .then(data => {
-    //     setExamCode(data.exam_code);
-    //     apiUrl = data.urls[0].api_url;
-    //     fields = data.urls[0].fields;
-    //     // console.log("Exam code: ", data.exam_code);
-    //     // console.log("API URL: ", apiUrl, "Fields: ", fields);
-    //     setMessage("Exam created. Please wait...");
-    //     setFontClass("text-success");
-
-    //     const result = await uploadFileToS3(apiUrl, fields);
-
-    //     if (result) {
-    //       console.log("Success!");
-    //       const msg = "Your study material has been successfully submitted! Your exam code is <span className='fw-bold text-primary'>" + examCode + "</span>. " +
-    //         "You will receive an email shortly once we process your study material with this exam code. " +
-    //         "The email will guide you through downloading the Telegram app and starting your practice with the bot. Happy studying!";
-    //       setMessage(msg);
-    //       setFontClass("text-dark");
-    //     }
-
-    //   })
-    //   .catch(error => {
-    //     console.log("Error submitting form: ", error);
-    //     setMessage("Form submission failed!");
-    //     setFontClass("text-danger");
-    //   });
   }
 
   return (
