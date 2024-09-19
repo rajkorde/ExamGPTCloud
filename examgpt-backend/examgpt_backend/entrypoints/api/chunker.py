@@ -10,7 +10,7 @@ from domain.commands.content_commands import DownloadFile
 from domain.commands.exam_commands import UpdateExamState
 from domain.model.core.exam import ExamState
 from domain.model.utils.logging import app_logger
-from entrypoints.helpers.utils import CommandRegistry, get_error
+from entrypoints.helpers.utils import CommandRegistry, get_error, get_success
 from entrypoints.models.api_model import ChunkerRequest
 
 logger = app_logger.get_logger()
@@ -18,6 +18,7 @@ CHUNK_BATCH_SIZE = 10
 
 
 def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
+    return get_success()
     logger.debug("Starting Chunking.")
     command_registry = CommandRegistry()
     content_service = command_registry.get_content_service()
@@ -56,26 +57,27 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     logger.debug("Notifying next service.")
     chunk_notification_service = command_registry.get_chunk_notification_service()
 
-    for i in range(0, len(chunks), CHUNK_BATCH_SIZE):
-        last_chunk = (len(chunks) - i) <= CHUNK_BATCH_SIZE
+    # for i in range(0, len(chunks), CHUNK_BATCH_SIZE):
+    #     last_chunk = (len(chunks) - i) <= CHUNK_BATCH_SIZE
 
-        notify_chunks(
-            NotifyChunks(
-                chunk_ids=[c.chunk_id for c in chunks[i : i + CHUNK_BATCH_SIZE]],
-                exam_code=exam_code,
-                last_chunk=last_chunk,
-            ),
-            chunk_notification_service,
-        )
+    #     notify_chunks(
+    #         NotifyChunks(
+    #             chunk_ids=[c.chunk_id for c in chunks[i : i + CHUNK_BATCH_SIZE]],
+    #             exam_code=exam_code,
+    #             last_chunk=last_chunk,
+    #         ),
+    #         chunk_notification_service,
+    #     )
 
     # test code
-    # notify_chunks(
-    #     NotifyChunks(
-    #         chunk_ids=[c.chunk_id for c in chunks[0:CHUNK_BATCH_SIZE]],
-    #         exam_code=exam_code,
-    #     ),
-    #     chunk_notification_service,
-    # )
+    notify_chunks(
+        NotifyChunks(
+            chunk_ids=[c.chunk_id for c in chunks[0:CHUNK_BATCH_SIZE]],
+            exam_code=exam_code,
+            last_chunk=True,
+        ),
+        chunk_notification_service,
+    )
 
     # Update Exam state
     logger.debug("Updating exam state.")

@@ -10,11 +10,9 @@ const Message = props => {
           <div>
             <span>&nbsp;&nbsp;</span>
           </div> :
-          <div className={fontClass}>
-            {message}
-          </div>
+          <div className={fontClass} dangerouslySetInnerHTML={{ __html: message }} />
       }
-    </div>
+    </div >
   );
 }
 

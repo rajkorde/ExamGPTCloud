@@ -23,21 +23,21 @@ class CreateExamRequest(BaseModel):
     ) -> Optional[CreateExamRequest]:
         body_str = event.get("body")
         if not body_str:
-            logger.error("Invalid event specifiction: {event}")
+            logger.error(f"Invalid event specifiction: {event}")
             return None
         body = json.loads(body_str)
 
         exam_name = body.get("exam_name")
         if not exam_name:
-            logger.error("Invalid event specifiction: {event}")
+            logger.error(f"Invalid exam name specifiction: {event}")
             return None
         filenames = body.get("filenames")
         if not filenames:
-            logger.error("Invalid event specifiction: {event}")
+            logger.error(f"Invalid filenames specifiction: {event}")
             return None
         email = body.get("email")
         if not email:
-            logger.error("Invalid event specifiction: {event}")
+            logger.error(f"Invalid email specifiction: {event}")
             return None
         exam_code = body.get("exam_code")
 

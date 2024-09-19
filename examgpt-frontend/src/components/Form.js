@@ -20,22 +20,46 @@ const Form = () => {
     }
     formData.append("file", filename);
 
-    fetch(apiUrl, { method: "POST", body: formData })
-      .then(response => {
-        const msg = response.ok ? "File uploaded successfully!" : "File upload failed!";
-        setMessage(msg);
-        setFontClass(response.ok ? "text-success" : "text-danger");
-      })
-      .catch(error => {
-        console.error(error);
+    try {
+      const response = await fetch(apiUrl, { method: "POST", body: formData })
+
+      if (response.ok) {
+        setMessage("File uploaded.");
+        setFontClass("text-muted");
+        return true;
+      } else {
         setMessage("File upload failed!");
         setFontClass("text-danger");
-      });
+        return false;
+      }
+
+    } catch (error) {
+      console.error("File upload error:" + error);
+      setMessage("File upload failed!");
+      setFontClass("text-danger");
+      return false;
+    }
   }
 
+  // const response = await fetch(apiUrl, { method: "POST", body: formData })
+  //   .then(response => {
+  //     const msg = response.ok ? "File uploaded." : "File upload failed!";
+  //     setMessage(msg);
+  //     setFontClass(response.ok ? "text-success" : "text-danger");
+  //     return response.ok;
+  //   })
+  //   .catch(error => {
+  //     console.error(error);
+  //     setMessage("File upload failed!");
+  //     setFontClass("text-danger");
+  //     return false;
+  //   });
+  // return true
+  // }
+
   const handleSubmit = async (event) => {
-    setMessage("")
-    setFontClass("text-dark");
+    setMessage("Processing...")
+    setFontClass("text-muted");
 
     if (!examName) {
       setMessage("Please enter an exam name!");
@@ -55,38 +79,92 @@ const Form = () => {
 
     // console.log("examName: ", examName, "email: ", email, "filename: ", filename);
 
-    let examCode = ""
-    let apiUrl = "";
-    let fields = {};
+    // let examCode = ""
+    // let apiUrl = "";
+    // let fields = {};
     const requestBody = JSON.stringify({
       exam_name: examName,
       filenames: [filename.name],
+      email: email,
       ...(examCode != null && { exam_code: examCode })
     });
 
-    fetch(backendUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: requestBody,
-      mode: "cors",
-    })
-      .then(response => response.ok ? response.json() : Promise.reject("Form submission failed!"))
-      .then(data => {
-        setExamCode(data.exam_code);
-        apiUrl = data.urls[0].api_url;
-        fields = data.urls[0].fields;
-        // console.log("Exam code: ", data.exam_code);
-        // console.log("API URL: ", apiUrl, "Fields: ", fields);
-        setMessage("Exam created successfully!");
-        setFontClass("text-success");
+    try {
+      const response = await fetch(backendUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: requestBody,
+        mode: "cors",
+      });
 
-        uploadFileToS3(apiUrl, fields);
-      })
-      .catch(error => {
-        console.log("Error submitting form: ", error);
+      if (!response.ok) {
+        throw new Error("Form submission failed!");
+      }
+
+      const data = await response.json();
+      // setExamCode(data.exam_code);
+      const apiUrl = data.urls[0].api_url;
+      const fields = data.urls[0].fields;
+      console.log("Exam code: ", data.exam_code);
+      console.log("API URL: ", apiUrl, "Fields: ", fields);
+
+      setMessage("Exam created. Please wait...");
+      setFontClass("text-muted");
+
+      const result = await uploadFileToS3(apiUrl, fields);
+
+      if (result) {
+        console.log("Success!");
+        const msg = "Your study material has been successfully submitted! Your exam code is <span class='fw-bold'>" + data.exam_code + "</span>. " +
+          "You will receive an email shortly once we process your study material with this exam code. " +
+          "The email will guide you through downloading the Telegram app and starting your practice with the bot. Happy studying!";
+        setMessage(msg);
+        setFontClass("alert alert-success");
+      } else {
+        console.error("Form submission failed!");
         setMessage("Form submission failed!");
         setFontClass("text-danger");
-      });
+      }
+
+    } catch (error) {
+      console.error("Form submission failed " + error);
+      setMessage("Form submission failed!");
+      setFontClass("text-danger");
+    }
+
+    // fetch(backendUrl, {
+    //   method: "POST",
+    //   headers: { "Content-Type": "application/json" },
+    //   body: requestBody,
+    //   mode: "cors",
+    // })
+    //   .then(response => response.ok ? response.json() : Promise.reject("Form submission failed!"))
+    //   .then(data => {
+    //     setExamCode(data.exam_code);
+    //     apiUrl = data.urls[0].api_url;
+    //     fields = data.urls[0].fields;
+    //     // console.log("Exam code: ", data.exam_code);
+    //     // console.log("API URL: ", apiUrl, "Fields: ", fields);
+    //     setMessage("Exam created. Please wait...");
+    //     setFontClass("text-success");
+
+    //     const result = await uploadFileToS3(apiUrl, fields);
+
+    //     if (result) {
+    //       console.log("Success!");
+    //       const msg = "Your study material has been successfully submitted! Your exam code is <span className='fw-bold text-primary'>" + examCode + "</span>. " +
+    //         "You will receive an email shortly once we process your study material with this exam code. " +
+    //         "The email will guide you through downloading the Telegram app and starting your practice with the bot. Happy studying!";
+    //       setMessage(msg);
+    //       setFontClass("text-dark");
+    //     }
+
+    //   })
+    //   .catch(error => {
+    //     console.log("Error submitting form: ", error);
+    //     setMessage("Form submission failed!");
+    //     setFontClass("text-danger");
+    //   });
   }
 
   return (
@@ -94,7 +172,9 @@ const Form = () => {
       <div className="row">
         <div className="col-2" />
         <div className="col-8 text-center mt-3">
-          <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Tempore temporibus enim, in sequi nobis excepturi dignissimos laborum nostrum repudiandae totam numquam animi labore, suscipit, corporis consequatur pariatur vitae officia fugiat.</p>
+          <p>Simplify your exam prep with AI. Upload your study material and let <span className="fw-bold text-primary">ExamGPT</span> transform it into flashcards and practice multiple-choice questions.
+            Once the study material is processed, you'll get an email letting you know that you're ready to start practicing for your exam using our Telegram bot with
+            personalized flashcards and quizzes. <span className="fw-bold text-primary">ExamGPT</span> helps you study smarter, not harder!</p>
         </div>
         <div className="col-2" />
       </div>
