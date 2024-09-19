@@ -94,7 +94,7 @@ const Form = () => {
       if (result) {
         console.log("Success!");
         const msg = "Your study material has been successfully submitted! Your exam code is <span class='fw-bold'>" + data.exam_code + "</span>. " +
-          "You will receive an email shortly once we process your study material with this exam code. " +
+          "You will receive an email shortly once your study material is processed. " +
           "The email will guide you through downloading the Telegram app and starting your practice with the bot. Happy studying!";
         setMessage(msg);
         setFontClass("alert alert-success");
