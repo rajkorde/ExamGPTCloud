@@ -10,6 +10,7 @@ from adapter.aws.data_service_dynamodb import (
     ExamServiceDynamoDB,
     QAServiceDynamodb,
 )
+from adapter.aws.email_service_ses import EmailServiceSES
 from adapter.aws.environment_service_ssm import EnvironmentServiceSSM
 from adapter.aws.notification_service_sns import (
     ChunkNotificationServiceSNS,
@@ -21,6 +22,7 @@ from domain.model.utils.logging import app_logger
 from domain.ports.ai_service import AIService
 from domain.ports.content_service import ContentService
 from domain.ports.data_service import ChunkService, ExamService, QAService
+from domain.ports.email_service import EmailService
 from domain.ports.environment_service import EnvironmentService
 from domain.ports.notification_service import (
     ChunkNotificationService,
@@ -66,6 +68,7 @@ class CommandRegistry:
             "ModelProvider": OpenAIProvider,
             "QAService": QAServiceDynamodb,
             "ValidationNotificationService": ValidationNotificationServiceSNS,
+            "EmailService": EmailServiceSES,
         }
     }
 
@@ -130,4 +133,11 @@ class CommandRegistry:
             "ValidationNotificationService"
         ]()
         assert isinstance(service, ValidationNotificationService)
+        return service
+
+    def get_email_service(self) -> EmailService:
+        service = CommandRegistry._command_registry[str(self.location)][
+            "EmailService"
+        ]()
+        assert isinstance(service, EmailService)
         return service

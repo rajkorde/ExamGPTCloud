@@ -270,6 +270,12 @@ Resources:
             TableName: !Ref QATable
         - DynamoDBCrudPolicy:
             TableName: !Ref ExamTable
+        - Statement:
+            - Effect: Allow
+              Action:
+                - ses:SendEmail
+                - ses:SendRawEmail
+              Resource: "*"
       Events:
         SNSEvent:
           Type: SNS

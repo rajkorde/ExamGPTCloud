@@ -1,13 +1,16 @@
 from typing import Any
 
 from domain.command_handlers.chunks_commands_handler import get_chunks_by_exam_code
-from domain.command_handlers.exam_commands_handler import get_exam
+from domain.command_handlers.exam_commands_handler import (
+    email_user_exam_ready,
+    get_exam,
+)
 from domain.command_handlers.questions_commands_handler import (
     get_flashcards,
     get_multiplechoices,
 )
 from domain.commands.chunks_commands import GetChunksByExamCode
-from domain.commands.exam_commands import GetExam
+from domain.commands.exam_commands import EmailUserExamReady, GetExam
 from domain.commands.questions_commands import GetFlashCards, GetMultipleChoices
 from domain.model.core.exam import ExamState
 from domain.model.utils.logging import app_logger
@@ -17,8 +20,11 @@ from entrypoints.models.api_model import ValidateRequest
 
 logger = app_logger.get_logger()
 
+
 # if more than CHUNK_PROCESSED_RATIO of chunks are processed, the exam is ready
 CHUNK_PROCESSED_RATIO = 0.8
+# Telegram bot link
+BOT_LINK = "t.me/RSKPythonExamGPTBot"
 
 
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
@@ -29,6 +35,7 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     exam_service = command_registry.get_exam_service()
     chunk_service = command_registry.get_chunk_service()
     qa_service = command_registry.get_qa_service()
+    email_service = command_registry.get_email_service()
 
     exam_event = ValidateRequest.parse_event(event)
     if not exam_event:
@@ -109,5 +116,13 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
         exam_service.update_state(exam_code=exam_code, newstate=ExamState.READY)
 
     # notify user that exam is ready
-
+    response = email_user_exam_ready(
+        command=EmailUserExamReady(
+            exam_code=exam_code, email=exam.email, bot_link=BOT_LINK
+        ),
+        email_service=email_service,
+    )
+    if not response:
+        logger.error("Error: Could not send email")
+        return get_error()
     return get_success()

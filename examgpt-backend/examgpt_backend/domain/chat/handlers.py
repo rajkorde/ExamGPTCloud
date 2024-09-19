@@ -6,7 +6,6 @@ from domain.chat.helper import ChatBotDataState, ChatServices
 from domain.model.core.question import MultipleChoiceEnhanced
 from domain.model.utils.exceptions import NotEnoughQuestionsInExam
 from domain.model.utils.logging import app_logger
-from pydantic import BaseModel, Field
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes, ConversationHandler
 
@@ -21,43 +20,6 @@ answer_keyboard_lf = [["Show Answer", "Cancel"]]
 start_markup = ReplyKeyboardMarkup(start_keyboard, one_time_keyboard=True)
 answer_markup_mc = ReplyKeyboardMarkup(answer_keyboard_mc, one_time_keyboard=True)
 answer_markup_lf = ReplyKeyboardMarkup(answer_keyboard_lf, one_time_keyboard=True)
-
-
-# TODO: Remove MultipleChoice and the_question
-class MultipleChoice(BaseModel):
-    question: str = Field(description="An exam question with a multiple choice answers")
-    answer: str = Field(
-        description="""
-            Answer key to a multiple choice question.
-            Possible values are A, B, C, D"""
-    )
-    choices: dict[str, str] = Field(
-        description="""
-            A dict of key and value for 4 choices for an exam question, out of which one is corrrect. 
-            The possible key values are A, B, C, D and value contains the possible answer""",
-    )
-
-    def __str__(self) -> str:
-        return "\n".join(
-            [
-                f"Question: {self.question}",
-                "Choices:",
-                *[f"{key}: {value}" for key, value in self.choices.items()],
-                f"Answer: {self.answer}",
-            ]
-        )
-
-
-the_question = MultipleChoice(
-    question="Who is the highest run-getter in ODI?",
-    answer="B",
-    choices={
-        "A": "Virat Kohli",
-        "B": "Sachin Tendulkar",
-        "C": "Ricky Ponting",
-        "D": "Agit Agarkar",
-    },
-)
 
 
 class CommandParser(NamedTuple):

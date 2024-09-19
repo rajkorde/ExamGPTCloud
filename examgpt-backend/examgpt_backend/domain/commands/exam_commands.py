@@ -19,7 +19,7 @@ class NotifyValidateExam(BaseModel):
     exam_code: str
 
 
-class NotifyUserExamReady(BaseModel):
+class EmailUserExamReady(BaseModel):
     exam_code: str
     email: EmailStr
     bot_link: str

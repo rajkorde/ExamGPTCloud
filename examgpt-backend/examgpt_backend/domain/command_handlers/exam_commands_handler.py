@@ -1,10 +1,16 @@
 import base64
+
+# from email import encoders
+# from email.mime.base import MIMEBase
+# from email.mime.image import MIMEImage
+# from email.mime.multipart import MIMEMultipart
+# from email.mime.text import MIMEText
 from pathlib import Path
 from typing import Optional
 
 from domain.commands.exam_commands import (
+    EmailUserExamReady,
     GetExam,
-    NotifyUserExamReady,
     NotifyValidateExam,
     SaveExam,
     UpdateExamState,
@@ -12,10 +18,8 @@ from domain.commands.exam_commands import (
 from domain.model.core.exam import Exam
 from domain.model.utils.logging import app_logger
 from domain.ports.data_service import ExamService
-from domain.ports.notification_service import (
-    EmailNotificationService,
-    ValidationNotificationService,
-)
+from domain.ports.email_service import EmailService
+from domain.ports.notification_service import ValidationNotificationService
 from jinja2 import Environment, FileSystemLoader
 
 logger = app_logger.get_logger()
@@ -55,6 +59,8 @@ def _generate_email(exam_code: str, bot_link: str) -> str:
     ios_qr_embedded = _embed_image(str(Path(template_dir) / "Telegram_Apple.png"))
     android_qr_embedded = _embed_image(str(Path(template_dir) / "Telegram_Google.png"))
 
+    logger.debug(f"{ios_qr_embedded=}")
+
     # Load the template
     template = env.get_template("exam_ready.html")
 
@@ -69,14 +75,23 @@ def _generate_email(exam_code: str, bot_link: str) -> str:
     return output
 
 
-def notify_user_exam_ready(
-    command: NotifyUserExamReady, email_service: EmailNotificationService
+def email_user_exam_ready(
+    command: EmailUserExamReady, email_service: EmailService
 ) -> bool:
-    exam_code = NotifyUserExamReady.exam_code
-    bot_link = NotifyUserExamReady.bot_link
+    exam_code = command.exam_code
+    bot_link = command.bot_link
 
+    sender = "Examiner <examiner@myexamgpt.com>"
+    recipient = command.email
     subject = "Your exam is ready!"
     body = _generate_email(exam_code, bot_link)
-    return email_service.send_notification(
-        email=command.email, subject=subject, body=body
-    )
+    return email_service.send_email(sender, recipient, subject, body)
+
+
+# def email_user_exam_ready(
+#     command: EmailUserExamReady, email_service: EmailService
+# ) -> bool:
+#     msg = MIMEMultipart("related")
+#     msg['Subject'] = "Your exam is ready!"
+#     msg['From'] = sender
+#     msg['To'] = recipient
