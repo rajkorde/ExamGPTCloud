@@ -31,5 +31,5 @@ def notify_chunks(
     command: NotifyChunks, chunk_notification_service: ChunkNotificationService
 ) -> bool:
     return chunk_notification_service.send_notification(
-        command.chunk_ids, command.exam_code
+        command.chunk_ids, command.exam_code, command.last_chunk
     )

@@ -4,13 +4,14 @@ from domain.command_handlers.chunks_commands_handler import get_chunks_by_exam_c
 from domain.command_handlers.exam_commands_handler import (
     email_user_exam_ready,
     get_exam,
+    update_exam_state,
 )
 from domain.command_handlers.questions_commands_handler import (
     get_flashcards,
     get_multiplechoices,
 )
 from domain.commands.chunks_commands import GetChunksByExamCode
-from domain.commands.exam_commands import EmailUserExamReady, GetExam
+from domain.commands.exam_commands import EmailUserExamReady, GetExam, UpdateExamState
 from domain.commands.questions_commands import GetFlashCards, GetMultipleChoices
 from domain.model.core.exam import ExamState
 from domain.model.utils.logging import app_logger
@@ -29,6 +30,7 @@ BOT_LINK = "t.me/RSKPythonExamGPTBot"
 
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     logger.info("Executing validator.")
+    logger.debug(f"{event=}")
 
     command_registry = CommandRegistry()
     exam_service = command_registry.get_exam_service()
@@ -106,15 +108,26 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     )
 
     # Set exam state to Ready
-    # processed_flashcard_ratio = chunk_stats.flash_cards_with_context_ratio
-    # processed_multiple_choice_ratio = chunk_stats.multiple_choices_with_context_ratio
+    processed_flashcard_ratio = chunk_stats.chunks_with_flash_cards_ratio
+    processed_multiple_choice_ratio = chunk_stats.chunks_with_flash_cards_ratio
 
-    # if processed_flashcard_ratio >= CHUNK_PROCESSED_RATIO and processed_multiple_choice_ratio >= CHUNK_PROCESSED_RATIO:
-    processed_chunk_ratio = 0.3
-    if processed_chunk_ratio >= CHUNK_PROCESSED_RATIO:
-        exam_service.update_state(exam_code=exam_code, newstate=ExamState.READY)
+    ready = False
+
+    if (
+        processed_flashcard_ratio >= CHUNK_PROCESSED_RATIO
+        and processed_multiple_choice_ratio >= CHUNK_PROCESSED_RATIO
+    ):
+        # processed_chunk_ratio = 0.3
+        # if processed_chunk_ratio >= CHUNK_PROCESSED_RATIO:
+        update_exam_state(
+            UpdateExamState(exam_code=exam_code, state=ExamState.READY), exam_service
+        )
+        ready = True
 
     # notify user that exam is ready
+    if not ready:
+        logger.error(f"Exam is not ready: {exam_code}")
+
     response = email_user_exam_ready(
         command=EmailUserExamReady(
             exam_code=exam_code, email=exam.email, bot_link=BOT_LINK
@@ -124,4 +137,5 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     if not response:
         logger.error("Error: Could not send email")
         return get_error()
+
     return get_success()

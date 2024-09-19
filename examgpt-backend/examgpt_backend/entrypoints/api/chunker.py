@@ -57,10 +57,13 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     chunk_notification_service = command_registry.get_chunk_notification_service()
 
     for i in range(0, len(chunks), CHUNK_BATCH_SIZE):
+        last_chunk = (len(chunks) - i) <= CHUNK_BATCH_SIZE
+
         notify_chunks(
             NotifyChunks(
                 chunk_ids=[c.chunk_id for c in chunks[i : i + CHUNK_BATCH_SIZE]],
                 exam_code=exam_code,
+                last_chunk=last_chunk,
             ),
             chunk_notification_service,
         )

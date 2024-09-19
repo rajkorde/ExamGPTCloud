@@ -30,6 +30,7 @@ logger = app_logger.get_logger()
 
 def handler(event: dict[str, Any], context: Any):
     logger.debug("Generating QAs based on notifcation.")
+    logger.debug(f"{event=}")
 
     command_registry = CommandRegistry()
     chunk_service = command_registry.get_chunk_service()
@@ -39,7 +40,7 @@ def handler(event: dict[str, Any], context: Any):
     notification_service = command_registry.get_validation_notification_service()
 
     # parse request (Get all chunks)
-    logger.info("Parsing request.")
+    logger.info("Parsing generate request.")
     qa_request = GenerateQARequest.parse_event(event)
     if not qa_request:
         logger.error("Error: Could not parse event")
@@ -59,14 +60,13 @@ def handler(event: dict[str, Any], context: Any):
     if not chunks:
         logger.error("Error: Could not get chunks")
         return get_error()
-    logger.debug(f"{len(chunks)=}")
+
     # Ensure exam codes in all text chunks are the same
     assert all(
         chunk.exam_code == exam_code for chunk in chunks
     ), "Not all values in the list are the same"
 
     # get exam
-    logger.info("Getting exam from the database.")
     exam = get_exam(GetExam(exam_code=exam_code), exam_service=exam_service)
     if not exam:
         logger.error("Error: Could not get exam")
@@ -76,7 +76,6 @@ def handler(event: dict[str, Any], context: Any):
 
     # Create QA objects for each chunk, if not already created
     ## Get OpenAI key
-    logger.info("Getting model key.")
     openai_key = get_parameter(
         GetParameter(name=openai_key_name, is_encrypted=True), environment_service
     )
@@ -171,11 +170,13 @@ def handler(event: dict[str, Any], context: Any):
         logger.error("Error: Could not save chunks")
         return get_error()
 
-    # Notify validator lambda
-    notify_validate_exam(
-        command=NotifyValidateExam(exam_code=exam_code),
-        notification_service=notification_service,
-    )
+    # Notify validator lambda if this is the last set of chunks
+    if qa_request.last_chunk:
+        logger.info("Processed last chunk. Notifying validator.")
+        notify_validate_exam(
+            command=NotifyValidateExam(exam_code=exam_code),
+            notification_service=notification_service,
+        )
 
     # return 200
     return get_success()

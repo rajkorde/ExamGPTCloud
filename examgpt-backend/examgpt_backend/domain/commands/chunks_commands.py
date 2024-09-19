@@ -18,3 +18,4 @@ class GetChunksByExamCode(BaseModel):
 class NotifyChunks(BaseModel):
     chunk_ids: list[str]
     exam_code: str
+    last_chunk: bool
