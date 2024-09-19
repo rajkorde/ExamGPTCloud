@@ -1,7 +1,13 @@
+from enum import Enum
 from uuid import uuid4
 
 from domain.model.utils.misc import get_current_time
 from langchain_core.pydantic_v1 import BaseModel, Field
+
+
+class QuestionType(Enum):
+    FLASHCARD = "flashcard"
+    MULTIPLECHOICE = "multiplechoice"
 
 
 class FlashCard(BaseModel):

@@ -4,12 +4,17 @@ from typing import Any, Optional
 
 from domain.command_handlers.exam_commands_handler import get_exam
 from domain.command_handlers.questions_commands_handler import (
+    get_flashcards,
     get_multiplechoices,
 )
 from domain.commands.exam_commands import GetExam
-from domain.commands.questions_commands import GetMultipleChoices
+from domain.commands.questions_commands import GetFlashCards, GetMultipleChoices
 from domain.model.core.exam import Exam
-from domain.model.core.question import MultipleChoiceEnhanced
+from domain.model.core.question import (
+    FlashCardEnhanced,
+    MultipleChoiceEnhanced,
+    QuestionType,
+)
 from domain.model.utils.logging import app_logger
 from domain.ports.data_service import ExamService, QAService
 from pydantic import BaseModel, Field
@@ -111,13 +116,14 @@ No exam code provided.
         return exam_obj
 
     @classmethod
-    async def get_multiplechoices(
+    async def get_questions(
         cls,
         exam_code: str,
         question_count: int,
+        question_type: QuestionType,
         update: Update,
         context: ContextTypes.DEFAULT_TYPE,
-    ) -> Optional[list[MultipleChoiceEnhanced]]:
+    ) -> Optional[list[MultipleChoiceEnhanced] | list[FlashCardEnhanced]]:
         qa_service = ChatServices.qa_service
         if not qa_service:
             logger.error("Chat service not initialized")
@@ -127,10 +133,23 @@ No exam code provided.
             )
             return None
 
-        questions = get_multiplechoices(
-            command=GetMultipleChoices(exam_code=exam_code, n=question_count),
-            data_service=qa_service,
-        )
+        if question_type == QuestionType.FLASHCARD:
+            questions = get_flashcards(
+                command=GetFlashCards(exam_code=exam_code, n=question_count),
+                data_service=qa_service,
+            )
+        elif question_type == QuestionType.MULTIPLECHOICE:
+            questions = get_multiplechoices(
+                command=GetMultipleChoices(exam_code=exam_code, n=question_count),
+                data_service=qa_service,
+            )
+        else:
+            error_msg = "Something went wrong. Please try again later."
+            logger.error(f"Invalid question type: {type}")
+            await context.bot.send_message(
+                chat_id=update.effective_chat.id, text=error_msg
+            )
+            return None
 
         if not questions or len(questions) == 0:
             error_msg = f"No questions found for this exam: {exam_code}"

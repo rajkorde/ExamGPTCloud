@@ -9,8 +9,10 @@ from domain.chat.handlers import (
     QUIZZING,
     cancel,
     exam,
+    quiz_fc,
     quiz_mc,
     start,
+    start_fc,
     start_mc,
 )
 from domain.chat.helper import ChatServices
@@ -96,7 +98,24 @@ async def async_handler(event: dict[Any, Any], context: Any):
         name="mc_conversation",
     )
 
+    fc_handler = ConversationHandler(
+        entry_points=[CommandHandler("fc", start_fc)],
+        states={
+            QUIZZING: [
+                MessageHandler(filters.Regex("^(Cancel)$"), cancel),
+                MessageHandler(
+                    filters.Regex("^(Start|Show Answer)$") & ~filters.COMMAND,
+                    quiz_fc,
+                ),
+            ]
+        },
+        fallbacks=[CommandHandler("cancel", cancel)],
+        persistent=True,
+        name="fc_conversation",
+    )
+
     application.add_handler(mc_handler)
+    application.add_handler(fc_handler)
     application.add_handler(CommandHandler("exam", exam))
     application.add_handler(CommandHandler(["start", "help"], start))
 
@@ -115,7 +134,6 @@ async def async_handler(event: dict[Any, Any], context: Any):
 
 
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
-    logger.info(f"{event=}")
     command_registry = CommandRegistry()
     exam_service = command_registry.get_exam_service()
     qa_service = command_registry.get_qa_service()
