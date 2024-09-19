@@ -178,5 +178,4 @@ def handler(event: dict[str, Any], context: Any):
             notification_service=notification_service,
         )
 
-    # return 200
     return get_success()

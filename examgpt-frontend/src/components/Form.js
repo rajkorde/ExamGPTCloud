@@ -140,10 +140,10 @@ const Form = () => {
               Only single pdf file uploads are supported at this point.
             </div>
           </div>
-          <div className="mb-3">
+          {/* <div className="mb-3">
             <label htmlFor="examCode" className="form-label fs-6 fw-bold">Exam code (optional)</label>
             <input type="text" className="form-control" id="examCode" value={examCode} onChange={(e) => setExamCode(e.target.value)} />
-          </div>
+          </div> */}
           <button type="button" onClick={handleSubmit} className="btn btn-primary">Submit</button>
           <div className="row">
             <Message message={message} fontClass={fontClass} />
