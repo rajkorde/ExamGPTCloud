@@ -17,7 +17,7 @@ logger = app_logger.get_logger()
 CHUNK_BATCH_SIZE = 10
 
 
-def handler(event: dict[str, Any], context: Any):
+def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     logger.debug("Starting Chunking.")
     command_registry = CommandRegistry()
     content_service = command_registry.get_content_service()
@@ -56,21 +56,23 @@ def handler(event: dict[str, Any], context: Any):
     logger.debug("Notifying next service.")
     chunk_notification_service = command_registry.get_chunk_notification_service()
 
-    # for i in range(0, len(chunks), CHUNK_BATCH_SIZE):
-    #     notify_chunks(
-    #         NotifyChunks(
-    #             chunk_ids=[c.chunk_id for c in chunks[i : i + CHUNK_BATCH_SIZE]]
-    #         ),
-    #         chunk_notification_service,
-    #     )
+    for i in range(0, len(chunks), CHUNK_BATCH_SIZE):
+        notify_chunks(
+            NotifyChunks(
+                chunk_ids=[c.chunk_id for c in chunks[i : i + CHUNK_BATCH_SIZE]],
+                exam_code=exam_code,
+            ),
+            chunk_notification_service,
+        )
+
     # test code
-    notify_chunks(
-        NotifyChunks(
-            chunk_ids=[c.chunk_id for c in chunks[0:CHUNK_BATCH_SIZE]],
-            exam_code=exam_code,
-        ),
-        chunk_notification_service,
-    )
+    # notify_chunks(
+    #     NotifyChunks(
+    #         chunk_ids=[c.chunk_id for c in chunks[0:CHUNK_BATCH_SIZE]],
+    #         exam_code=exam_code,
+    #     ),
+    #     chunk_notification_service,
+    # )
 
     # Update Exam state
     logger.debug("Updating exam state.")

@@ -29,7 +29,6 @@ BOT_LINK = "t.me/RSKPythonExamGPTBot"
 
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     logger.info("Executing validator.")
-    logger.info(f"{event=}")
 
     command_registry = CommandRegistry()
     exam_service = command_registry.get_exam_service()

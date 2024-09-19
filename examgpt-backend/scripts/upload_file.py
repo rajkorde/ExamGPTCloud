@@ -1,16 +1,8 @@
+import os
 from typing import Any
 
 import requests
 from lib.utils import get_api_url, get_env, load_env_files
-
-region = "us-west-2"
-stage = "Stage"
-
-payload = {
-    "exam_name": "AWS Solution Architect Associate Certification Exam",
-    "email": "GpCm8@example.com",
-    "filenames": ["scripts/testdata/aws2.pdf"],
-}
 
 
 def upload_file_to_s3(presigned_url: str, fields: dict[str, Any], file_path: str):
@@ -26,6 +18,12 @@ def main() -> None:
     load_env_files()
     stage = get_env("STAGE")
     region = get_env("REGION")
+
+    payload = {
+        "exam_name": "AWS Solution Architect Associate Certification Exam",
+        "email": os.getenv("EMAIL"),
+        "filenames": ["scripts/testdata/aws2.pdf"],
+    }
 
     api_url = get_api_url("create_exam", stage, region)
     print(f"Using api: {api_url}")
