@@ -15,7 +15,13 @@ from domain.model.utils.exceptions import (
 )
 from domain.model.utils.logging import app_logger
 from domain.model.utils.misc import get_env_var
-from domain.ports.data_service import ChunkService, ExamService, QAService
+from domain.model.utils.work_tracker import WorkTracker
+from domain.ports.data_service import (
+    ChunkService,
+    ExamService,
+    QAService,
+    WorkTrackerService,
+)
 from pydantic import ValidationError
 
 logger = app_logger.get_logger()
@@ -250,3 +256,15 @@ class QAServiceDynamodb(QAService):
             )
 
         return random.sample(multiplechoices, n) if n > 0 else multiplechoices
+
+
+class WorkTrackerServiceDynamodb(WorkTrackerService):
+    def add_exam_tracker(self, exam_code: str) -> bool: ...
+
+    def get_exam_tracker(self, exam_code: str) -> Optional[WorkTracker]: ...
+
+    def reset_exam_tracker(self, exam_code: str) -> bool: ...
+
+    def update_total_workers(self, exam_code: str) -> bool: ...
+
+    def increment_completed_workers(self, exam_code: str) -> bool: ...

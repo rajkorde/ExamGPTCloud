@@ -5,6 +5,7 @@ from typing import Optional
 from domain.model.core.chunk import TextChunk
 from domain.model.core.exam import Exam, ExamState
 from domain.model.core.question import FlashCardEnhanced, MultipleChoiceEnhanced
+from domain.model.utils.work_tracker import WorkTracker
 
 
 class ExamService(ABC):
@@ -71,3 +72,20 @@ class QAService(ABC):
     def get_multiplechoices(
         self, exam_code: str, n: int = 0
     ) -> Optional[list[MultipleChoiceEnhanced]]: ...
+
+
+class WorkTrackerService(ABC):
+    @abstractmethod
+    def add_exam_tracker(self, exam_code: str) -> bool: ...
+
+    @abstractmethod
+    def get_exam_tracker(self, exam_code: str) -> Optional[WorkTracker]: ...
+
+    @abstractmethod
+    def reset_exam_tracker(self, exam_code: str) -> bool: ...
+
+    @abstractmethod
+    def update_total_workers(self, exam_code: str) -> bool: ...
+
+    @abstractmethod
+    def increment_completed_workers(self, exam_code: str) -> bool: ...
