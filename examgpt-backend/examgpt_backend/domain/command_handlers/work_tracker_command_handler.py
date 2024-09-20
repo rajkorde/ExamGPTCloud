@@ -32,7 +32,9 @@ def reset_exam_tracker(
 def update_total_workers(
     command: UpdateTotalWorkers, work_tracker_service: WorkTrackerService
 ) -> bool:
-    return work_tracker_service.update_total_workers(exam_code=command.exam_code)
+    return work_tracker_service.update_total_workers(
+        exam_code=command.exam_code, total_workers=command.total_workers
+    )
 
 
 def increment_completed_workers(

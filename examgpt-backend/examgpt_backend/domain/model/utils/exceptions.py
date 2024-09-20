@@ -32,6 +32,14 @@ class InvalidExam(BaseException):
         super().__init__(message=message)
 
 
+class InvalidWorkTracker(BaseException):
+    """Raised when there is no exam code in Work Tracker"""
+
+    def __init__(self):
+        message: str = "Work Tracker does not have exam code."
+        super().__init__(message=message)
+
+
 class PromptNotFound(BaseException):
     """Raised when prompt for a scenario is not found"""
 

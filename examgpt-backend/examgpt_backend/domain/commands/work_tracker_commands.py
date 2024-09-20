@@ -15,6 +15,7 @@ class ResetExamTracker(BaseModel):
 
 class UpdateTotalWorkers(BaseModel):
     exam_code: str
+    total_workers: int
 
 
 class IncrementCompletedWorkers(BaseModel):

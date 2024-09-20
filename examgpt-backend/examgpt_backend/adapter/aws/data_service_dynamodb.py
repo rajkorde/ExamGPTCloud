@@ -11,6 +11,7 @@ from domain.model.utils.exceptions import (
     ExamAlreadyExists,
     InvalidEnvironmentSetup,
     InvalidExam,
+    InvalidWorkTracker,
     NotEnoughQuestionsInExam,
 )
 from domain.model.utils.logging import app_logger
@@ -45,11 +46,11 @@ class ExamServiceDynamoDB(ExamService):
             return False
 
     def put_exam(self, exam: Exam, overwrite: bool = False) -> bool:
-        item = exam.model_dump()
-        item["state"] = exam.state.value
-
         if not exam or not exam.exam_code:
             raise InvalidExam()
+
+        item = exam.model_dump()
+        item["state"] = exam.state.value
 
         if not overwrite:
             if self._check_exam_exists({"exam_code": exam.exam_code}):
@@ -259,12 +260,64 @@ class QAServiceDynamodb(QAService):
 
 
 class WorkTrackerServiceDynamodb(WorkTrackerService):
-    def add_exam_tracker(self, exam_code: str) -> bool: ...
+    def __init__(self):
+        WORK_TRACKER_TABLE_ENV_VAR: str = "WORK_TRACKER_TABLE"
+        table_name = get_env_var(WORK_TRACKER_TABLE_ENV_VAR)
+        if not table_name:
+            raise InvalidEnvironmentSetup(WORK_TRACKER_TABLE_ENV_VAR)
+        self.ddb = boto3.resource("dynamodb")
+        self.table = self.ddb.Table(table_name)
 
-    def get_exam_tracker(self, exam_code: str) -> Optional[WorkTracker]: ...
+    def _put_item(self, tracker: WorkTracker) -> bool:
+        if not tracker or not tracker.exam_code:
+            raise InvalidWorkTracker()
 
-    def reset_exam_tracker(self, exam_code: str) -> bool: ...
+        item = tracker.model_dump()
 
-    def update_total_workers(self, exam_code: str) -> bool: ...
+        try:
+            self.table.put_item(
+                Item=item,
+            )
+            logger.info(
+                f"Work tracker for exam saved successfully: {tracker.exam_code}"
+            )
+            return True
+        except (ClientError, BotoCoreError) as e:
+            logger.error(f"Failed saving to Work tracker table: {e}")
+            return False
 
-    def increment_completed_workers(self, exam_code: str) -> bool: ...
+    def _get_item(self, exam_code: str) -> Optional[WorkTracker]:
+        try:
+            response = self.table.get_item(Key={"exam_code": exam_code})
+            item = response.get("Item")
+            if not item:
+                logger.warning(f"No tracker found for exam code: {exam_code}")
+                return None
+            return WorkTracker(**item)
+        except (ClientError, BotoCoreError) as e:
+            logger.error(f"Error retrieving work tracker with key {exam_code}: {e}")
+            return None
+
+    def add_exam_tracker(self, exam_code: str) -> bool:
+        tracker = WorkTracker(exam_code=exam_code)
+        return self._put_item(tracker)
+
+    def get_exam_tracker(self, exam_code: str) -> Optional[WorkTracker]:
+        return self._get_item(exam_code)
+
+    def reset_exam_tracker(self, exam_code: str) -> bool:
+        return self._put_item(WorkTracker(exam_code=exam_code))
+
+    def update_total_workers(self, exam_code: str, total_workers: int) -> bool:
+        tracker = self.get_exam_tracker(exam_code)
+        if not tracker:
+            return False
+        tracker.total_workers = total_workers
+        return self._put_item(tracker)
+
+    def increment_completed_workers(self, exam_code: str) -> bool:
+        tracker = self.get_exam_tracker(exam_code)
+        if not tracker:
+            return False
+        tracker.completed_workers += 1
+        return self._put_item(tracker)
