@@ -113,18 +113,15 @@ const Form = () => {
 
   return (
     <>
-      <div className="row">
-        <div className="col-2" />
-        <div className="col-8 text-center mt-3">
-          <p>Simplify your exam prep with AI. Upload your study material and let <span className="fw-bold text-primary">ExamGPT</span> transform it into flashcards and practice multiple-choice questions.
+      <div className="row justify-content-center">
+        <div className="col-10 col-md-10 col-lg-8 text-center mt-3">
+          <p style={{ textAlign: "justify" }}>Simplify your exam prep with AI. Upload your study material and let <span className="fw-bold text-primary">ExamGPT</span> transform it into flashcards and practice multiple-choice questions.
             Once the study material is processed, you'll get an email letting you know that you're ready to start practicing for your exam using our Telegram bot with
             personalized flashcards and quizzes. <span className="fw-bold text-primary">ExamGPT</span> helps you study smarter, not harder!</p>
         </div>
-        <div className="col-2" />
       </div>
-      <div className="row">
-        <div className="col-4" />
-        <div className="col-4 text-start">
+      <div className="row justify-content-center">
+        <div className="col-10 col-md-8 col-lg-6 text-start">
           <div className="mb-3">
             <label htmlFor="examName" className="form-label fs-6 fw-bold">Exam name</label>
             <input type="text" className="form-control" id="examName" value={examName} onChange={(e) => setExamName(e.target.value)} placeholder="AWS Solution Architect Associate Certification" required />
@@ -149,7 +146,6 @@ const Form = () => {
             <Message message={message} fontClass={fontClass} />
           </div>
         </div>
-        <div className="col-4" />
       </div>
     </>
   );
