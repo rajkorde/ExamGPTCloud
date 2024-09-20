@@ -3,9 +3,11 @@ Transform: AWS::Serverless-2016-10-31
 Description: |
   examgpt-backend
   Backend for examgpt.  
-  * API gateway, Lambda and S3 used for creating exam once file is uploaded to S3 by client 
-  * DynamoDB, Lambda, SNS used for storing examgpt data 
-  * API Gateway, Lambda used for for telegram bot
+  * API gateway for front end access
+  * S3 for storing user content and telegram bot chat state
+  * Lambdas for all backend processing and chat server
+  * SNS for sending notifications and following SAGA pattern
+  * SES for sending emails to users
 
 Globals:
   Function:
@@ -159,6 +161,20 @@ Resources:
             ReadCapacityUnits: 5
             WriteCapacityUnits: 5
 
+  WorkTrackerTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      KeySchema:
+        - AttributeName: exam_code
+          KeyType: HASH
+      AttributeDefinitions:
+        - AttributeName: exam_code
+          AttributeType: S
+      TableName: !Sub ${AWS::StackName}-${AWS::AccountId}-${AWS::Region}-work-tracker
+
   # Rest APIs
   ExamGPTRestApi:
     Type: AWS::Serverless::Api
@@ -201,6 +217,7 @@ Resources:
           CHUNK_TOPIC: !Ref ChunkTopic
           CHUNK_TABLE: !Ref ChunkTable
           EXAM_TABLE: !Ref ExamTable
+          WORK_TRACKER_TABLE: !Ref WorkTrackerTable
       Policies:
         - SNSPublishMessagePolicy:
             TopicName: !GetAtt ChunkTopic.TopicName
@@ -208,6 +225,8 @@ Resources:
             TableName: !Ref ChunkTable
         - DynamoDBCrudPolicy:
             TableName: !Ref ExamTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WorkTrackerTable
       Events:
         S3Event:
           Type: S3
@@ -228,6 +247,7 @@ Resources:
           CHUNK_TABLE: !Ref ChunkTable
           QA_TABLE: !Ref QATable
           EXAM_TABLE: !Ref ExamTable
+          WORK_TRACKER_TABLE: !Ref WorkTrackerTable
           VALIDATE_TOPIC: !Ref ValidateTopic
       Policies:
         - SNSPublishMessagePolicy:
@@ -238,6 +258,8 @@ Resources:
             TableName: !Ref QATable
         - DynamoDBCrudPolicy:
             TableName: !Ref ExamTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WorkTrackerTable
         - Statement:
             - Action:
                 - ssm:GetParameter
@@ -263,6 +285,7 @@ Resources:
           CHUNK_TABLE: !Ref ChunkTable
           QA_TABLE: !Ref QATable
           EXAM_TABLE: !Ref ExamTable
+          WORK_TRACKER_TABLE: !Ref WorkTrackerTable
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref ChunkTable
@@ -270,6 +293,8 @@ Resources:
             TableName: !Ref QATable
         - DynamoDBCrudPolicy:
             TableName: !Ref ExamTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref WorkTrackerTable
         - Statement:
             - Effect: Allow
               Action:
