@@ -84,7 +84,6 @@ const Form = () => {
       const apiUrl = data.urls[0].api_url;
       const fields = data.urls[0].fields;
       console.log("Exam code: ", data.exam_code);
-      console.log("API URL: ", apiUrl, "Fields: ", fields);
 
       setMessage("Exam created. Please wait...");
       setFontClass("text-muted");

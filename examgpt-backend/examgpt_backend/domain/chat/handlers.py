@@ -358,8 +358,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     welcome_text = """
 Welcome to ExamGPT!
 /exam exam_code: Initialize an exam for a given code
-/mc [n] [topic]. Start a multiple choice quiz of n questions (default 1) on an optional topic.
 /fc [n] [topic]. Start a flash card quiz of n questions (default 1) on an optional topic.
+/mc [n] [topic]. Start a multiple choice quiz of n questions (default 1) on an optional topic.
 You can also ask general questions for the exam to refresh your memory.
 """
     await context.bot.send_message(chat_id=update.effective_chat.id, text=welcome_text)
