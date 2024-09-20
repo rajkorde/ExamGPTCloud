@@ -76,11 +76,6 @@ async def async_handler(event: dict[Any, Any], context: Any):
     )
 
     update = Update.de_json(json.loads(event["body"]), application.bot)
-    try:
-        logger.debug(f"User command: {update.message.text}")
-    except Exception as e:
-        logger.debug("Could not parse update.")
-        logger.debug(e)
 
     mc_handler = ConversationHandler(
         entry_points=[CommandHandler("mc", start_mc)],

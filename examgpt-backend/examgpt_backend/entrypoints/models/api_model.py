@@ -119,8 +119,6 @@ class ChunkerRequest(BaseModel):
             logger.error("Invalid event specifiction: {event}")
             return None
 
-        # logger.debug(f"{bucket_name=}, {object_key=}, {exam_code=}")
-
         return ChunkerRequest(
             bucket_name=bucket_name, location=object_key, exam_code=exam_code
         )

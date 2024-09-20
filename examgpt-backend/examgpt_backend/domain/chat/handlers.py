@@ -96,9 +96,6 @@ async def start_mc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         return ConversationHandler.END
 
     try:
-        logger.info(
-            f"Getting {command.question_count} multiple choice questions from QA table."
-        )
         questions = await ChatServices.get_questions(
             exam_code=chat_payload.exam_code,
             question_count=command.question_count,
@@ -235,9 +232,6 @@ async def start_fc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         return ConversationHandler.END
 
     try:
-        logger.info(
-            f"Getting {command.question_count} flash card questions from QA table."
-        )
         questions = await ChatServices.get_questions(
             exam_code=chat_payload.exam_code,
             question_count=command.question_count,

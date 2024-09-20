@@ -33,8 +33,7 @@ logger = app_logger.get_logger()
 
 
 def handler(event: dict[str, Any], context: Any):
-    logger.debug("Generating QAs based on notifcation.")
-    logger.debug(f"{event=}")
+    logger.info("Generating QAs based on notifcation.")
 
     command_registry = CommandRegistry()
     chunk_service = command_registry.get_chunk_service()
@@ -54,7 +53,7 @@ def handler(event: dict[str, Any], context: Any):
     chunk_ids = qa_request.chunk_ids
     exam_code = qa_request.exam_code
     if not len(chunk_ids):
-        logger.debug("No chunks ids found in message.")
+        logger.info("No chunks ids found in message.")
         return get_success("Nothing to process.")
 
     # get all chunks, ensure all chunks exist and the state is not processed
@@ -76,7 +75,6 @@ def handler(event: dict[str, Any], context: Any):
     if not exam:
         logger.error("Error: Could not get exam")
         return get_error()
-    logger.debug(f"{exam=}")
     exam_name = exam.name
 
     # Create QA objects for each chunk, if not already created
@@ -167,7 +165,7 @@ def handler(event: dict[str, Any], context: Any):
         return get_error()
 
     # Update Chunk states
-    logger.info("Saving chunks.")
+    logger.info("Saving chunks with updated states after QA generation.")
     response = save_chunks(
         command=SaveChunks(chunks=chunks), chunk_service=chunk_service
     )
@@ -184,7 +182,7 @@ def handler(event: dict[str, Any], context: Any):
         )
 
     # Increment completed workers
-    logger.debug("Incrementing completed workers.")
+    logger.info("Incrementing completed workers.")
     result = increment_completed_workers(
         IncrementCompletedWorkers(exam_code=exam_code),
         work_tracker_service=work_tracker_service,

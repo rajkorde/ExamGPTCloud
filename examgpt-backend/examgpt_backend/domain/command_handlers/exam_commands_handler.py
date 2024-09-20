@@ -43,7 +43,6 @@ def notify_validate_exam(
 
 def _generate_email(exam_code: str, bot_link: str) -> str:
     template_dir = Path(__file__).resolve().parent.parent.parent / "assets"
-    logger.debug(f"{template_dir=}")
     env = Environment(loader=FileSystemLoader(str(template_dir)))
 
     # Load the template

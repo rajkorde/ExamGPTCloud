@@ -53,7 +53,7 @@ class SimplePDFChunker:
     def chunk(self, location: str, exam_code: str) -> list[TextChunk]:
         loader = PyMuPDFLoader(location)
         pages = loader.load()
-        logger.debug(
+        logger.info(
             f"Parsing complete for pdf file: {location}. The PDF has {len(pages)} pages."
         )
 

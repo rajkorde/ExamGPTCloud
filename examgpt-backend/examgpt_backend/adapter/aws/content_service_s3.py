@@ -54,7 +54,7 @@ class ContentServiceS3(ContentService):
                     )
                     raise InvalidEnvironmentSetup(BUCKET_ENV_VAR)
             self.s3.download_file(bucket_name, source, destination)
-            logger.debug(f"Downloaded filesize: {os.path.getsize(destination)}")
+            logger.info(f"Downloaded filesize: {os.path.getsize(destination)}")
         except ClientError as e:
             logger.error(e)
             if (

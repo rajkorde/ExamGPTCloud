@@ -24,23 +24,22 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     if not exam_request:
         return get_error("Malformed request.", error_code=400)
 
-    logger.debug("Creating Exam.")
+    logger.info("Creating Exam.")
     exam = ExamService.create_exam(
         name=exam_request.exam_name,
         email=exam_request.email,
         filenames=exam_request.filenames,
         exam_code=exam_request.exam_code,
     )
-    logger.debug(f"Created Exam: {exam.exam_code}")
+    logger.info(f"Created Exam: {exam.exam_code}")
 
     signed_urls = create_upload_urls(
         CreateUploadURLs(sources=exam.sources), content_service
     )
 
-    logger.debug("Saving Exam.")
+    logger.info("Saving Exam.")
     exam_response = None
     if exam_request.exam_code:
-        logger.debug(f"Requesting existing exam code: {exam_request.exam_code}")
         exam_response = get_exam(
             GetExam(exam_code=exam_request.exam_code), exam_service
         )
@@ -48,9 +47,9 @@ def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
         response = save_exam(SaveExam(exam=exam), exam_service)
         if not response:
             return get_error(f"Could not save Exam: {exam.exam_code}")
-        logger.debug("Exam saved.")
+        logger.info("Exam saved.")
     else:
-        logger.debug("Exam already exists.")
+        logger.info("Exam already exists.")
 
     return {
         "statusCode": 200,

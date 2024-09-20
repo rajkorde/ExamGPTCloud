@@ -50,7 +50,7 @@ def poll_for_completion(
         tracker = get_exam_tracker(
             GetExamTracker(exam_code=exam_code), work_tracker_service
         )
-        logger.debug(f"Completed workers: {tracker.completed_workers}")
+        logger.info(f"Completed workers: {tracker.completed_workers}")
         if (tracker.completed_workers + 1) >= tracker.total_workers:
             return CompletionReason.COMPLETED
         else:
@@ -66,7 +66,6 @@ BOT_LINK = "t.me/RSKPythonExamGPTBot"
 
 def handler(event: dict[Any, Any], context: Any) -> dict[str, Any]:
     logger.info("Executing validator.")
-    logger.debug(f"{event=}")
 
     command_registry = CommandRegistry()
     exam_service = command_registry.get_exam_service()

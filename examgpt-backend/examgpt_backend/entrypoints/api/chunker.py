@@ -22,13 +22,13 @@ CHUNK_BATCH_SIZE = 10
 
 
 def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
-    logger.debug("Starting Chunking.")
+    logger.info("Starting Chunking.")
     command_registry = CommandRegistry()
     content_service = command_registry.get_content_service()
     work_tracker_service = command_registry.get_work_tracker_service()
 
     # Download File
-    logger.debug("Downloading file.")
+    logger.info("Downloading file.")
     chunker_request = ChunkerRequest.parse_event(event)
     if not chunker_request:
         logger.error("Error: Could not parse event")
@@ -43,13 +43,13 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     )
 
     # Chunk file
-    logger.debug("Chunking file.")
+    logger.info("Chunking file.")
     chunker = SimplePDFChunker()
     chunks = chunker.chunk(location=downloaded_file, exam_code=exam_code)
-    logger.debug(f"Chunks size: {len(chunks)}")
+    logger.info(f"Chunks size: {len(chunks)}")
 
     # Save chunks in batch
-    logger.debug("Saving chunks.")
+    logger.info("Saving chunks.")
     chunk_service = command_registry.get_chunk_service()
     response = save_chunks(SaveChunks(chunks=chunks), chunk_service)
     if not response:
@@ -57,17 +57,17 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         return get_error()
 
     # Publish chunk topic in batches
-    logger.debug("Notifying next service.")
+    logger.info("Notifying next service.")
     chunk_notification_service = command_registry.get_chunk_notification_service()
 
     # Create work tracker for exam
-    logger.debug("Creating work tracker for exam.")
+    logger.info("Creating work tracker for exam.")
     result = add_exam_tracker(AddExamTracker(exam_code=exam_code), work_tracker_service)
     if not result:
         logger.error(f"Error: Could not create work tracker for exam: {exam_code}")
         return get_error()
     total_workers_needed = (len(chunks) // CHUNK_BATCH_SIZE) + 1
-    logger.debug(f"Total workers needed: {total_workers_needed}")
+    logger.info(f"Total workers needed: {total_workers_needed}")
     result = update_total_workers(
         UpdateTotalWorkers(exam_code=exam_code, total_workers=total_workers_needed),
         work_tracker_service,
@@ -99,7 +99,7 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     # )
 
     # Update Exam state
-    logger.debug("Updating exam state.")
+    logger.info("Updating exam state.")
     exam_service = command_registry.get_exam_service()
     response = update_exam_state(
         UpdateExamState(exam_code=exam_code, state=ExamState.CHUNKED), exam_service
@@ -110,5 +110,5 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         )
         return get_error()
 
-    logger.debug("Chunking complete.")
+    logger.info("Chunking complete.")
     return get_success("File chunked successfully.")
