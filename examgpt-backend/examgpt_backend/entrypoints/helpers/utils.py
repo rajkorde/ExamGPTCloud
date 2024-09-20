@@ -39,7 +39,8 @@ logger = app_logger.get_logger()
 
 
 def get_error(
-    message: str = "Something went wrong!", error_code: int = 500
+    message: str = "Something went wrong. Please try again later.",
+    error_code: int = 500,
 ) -> dict[str, Any]:
     return {
         "statusCode": error_code,

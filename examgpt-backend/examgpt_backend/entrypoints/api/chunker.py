@@ -4,9 +4,14 @@ from domain.chunker.pdf_chunker import SimplePDFChunker
 from domain.command_handlers.chunks_commands_handler import notify_chunks, save_chunks
 from domain.command_handlers.content_commands_handler import download_file
 from domain.command_handlers.exam_commands_handler import update_exam_state
+from domain.command_handlers.work_tracker_command_handler import (
+    add_exam_tracker,
+    update_total_workers,
+)
 from domain.commands.chunks_commands import NotifyChunks, SaveChunks
 from domain.commands.content_commands import DownloadFile
 from domain.commands.exam_commands import UpdateExamState
+from domain.commands.work_tracker_commands import AddExamTracker, UpdateTotalWorkers
 from domain.model.core.exam import ExamState
 from domain.model.utils.logging import app_logger
 from entrypoints.helpers.utils import CommandRegistry, get_error, get_success
@@ -20,7 +25,7 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     logger.debug("Starting Chunking.")
     command_registry = CommandRegistry()
     content_service = command_registry.get_content_service()
-    # exam_service = command_registry.get_exam_service()
+    work_tracker_service = command_registry.get_work_tracker_service()
 
     # Download File
     logger.debug("Downloading file.")
@@ -54,6 +59,22 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
     # Publish chunk topic in batches
     logger.debug("Notifying next service.")
     chunk_notification_service = command_registry.get_chunk_notification_service()
+
+    # Create work tracker for exam
+    logger.debug("Creating work tracker for exam.")
+    result = add_exam_tracker(AddExamTracker(exam_code=exam_code), work_tracker_service)
+    if not result:
+        logger.error(f"Error: Could not create work tracker for exam: {exam_code}")
+        return get_error()
+    total_workers_needed = (len(chunks) // CHUNK_BATCH_SIZE) + 1
+    logger.debug(f"Total workers needed: {total_workers_needed}")
+    result = update_total_workers(
+        UpdateTotalWorkers(exam_code=exam_code, total_workers=total_workers_needed),
+        work_tracker_service,
+    )
+    if not result:
+        logger.error(f"Error: Could not update total workers for exam: {exam_code}")
+        return get_error()
 
     for i in range(0, len(chunks), CHUNK_BATCH_SIZE):
         last_chunk = (len(chunks) - i) <= CHUNK_BATCH_SIZE

@@ -10,6 +10,9 @@ from domain.command_handlers.questions_commands_handler import (
     save_flashcards,
     save_multiplechoices,
 )
+from domain.command_handlers.work_tracker_command_handler import (
+    increment_completed_workers,
+)
 from domain.commands.chunks_commands import GetChunks, SaveChunks
 from domain.commands.environment_commands import GetParameter
 from domain.commands.exam_commands import GetExam, NotifyValidateExam
@@ -19,6 +22,7 @@ from domain.commands.questions_commands import (
     SaveFlashCards,
     SaveMultipleChoices,
 )
+from domain.commands.work_tracker_commands import IncrementCompletedWorkers
 from domain.model.utils.exceptions import NotEnoughInformationInContext
 from domain.model.utils.logging import app_logger
 from entrypoints.helpers.utils import CommandRegistry, get_error, get_success
@@ -38,6 +42,7 @@ def handler(event: dict[str, Any], context: Any):
     exam_service = command_registry.get_exam_service()
     qa_service = command_registry.get_qa_service()
     notification_service = command_registry.get_validation_notification_service()
+    work_tracker_service = command_registry.get_work_tracker_service()
 
     # parse request (Get all chunks)
     logger.info("Parsing generate request.")
@@ -177,5 +182,17 @@ def handler(event: dict[str, Any], context: Any):
             command=NotifyValidateExam(exam_code=exam_code),
             notification_service=notification_service,
         )
+
+    # Increment completed workers
+    logger.debug("Incrementing completed workers.")
+    result = increment_completed_workers(
+        IncrementCompletedWorkers(exam_code=exam_code),
+        work_tracker_service=work_tracker_service,
+    )
+
+    # If increment completed workers failed, no need to return an error.
+    # The validator will timeout and retry.
+    if not result:
+        logger.warning("Error: Could not increment completed workers")
 
     return get_success()

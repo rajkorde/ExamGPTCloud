@@ -279,7 +279,7 @@ Resources:
       CodeUri: examgpt_backend/
       Handler: entrypoints.api.validate.handler
       MemorySize: 128
-      Timeout: 600
+      Timeout: 900
       Environment:
         Variables:
           CHUNK_TABLE: !Ref ChunkTable
