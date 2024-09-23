@@ -2,14 +2,11 @@
 
 ## 1. Project Overview
 
-ExamGPT is a software solution designed to help users prepare for their exams by automatically generating flashcards and multiple-choice questions from their study materials (PDF files). The platform comprises a React-based frontend website and a serverless backend infrastructure on AWS. Users can upload their study materials, receive an exam_code, and practice using a Telegram bot that interfaces with the generated content.
+ExamGPT helps users prepare for their exams by automatically generating flashcards and multiple-choice questions from their study materials (eg. PDF files). Studying techniques like [Spaced Repetition](https://en.wikipedia.org/wiki/Spaced_repetition) and [Retreival learning](https://ctl.wustl.edu/resources/using-retrieval-practice-to-increase-student-learning/) are common among students and creating high quality flash cards is a key component of these learning methods. There are software solutions like Anki and Quizlet that let students use flash cards effectively, but creating these flash cards is a time consuming process. This project attempts to solve that problem using AI.
 
-## 2. Objectives
+In ExamGPT, users goto a [website](https://myexamgpt.com/) and upload the their study material and get an exam code. Once ExamGPT is done processing the study material, it sends the user an email signalling completion and detailing next steps. Then the user can download [Telegram](https://telegram.org/) and practice using flashcards and multiple choice quizzes using their exam code and the ExamGPT telegram bot.
 
-Automate Study Material Processing: Convert user-uploaded PDFs into digestible study aids.
-Provide Interactive Learning: Enable users to practice flashcards and take quizzes via Telegram.
-Ensure Scalability and Reliability: Utilize AWS services to handle varying loads and ensure uptime.
-Maintain Security and Privacy: Protect user data throughout the process.
+The infrastructure is implemented using AWS. The frontend is a simple React App hosted as a static S3 website. The backend is fully serverless and easily scalable and uses a number of AWS services.
 
 ## 3. System Architecture
 
@@ -237,7 +234,7 @@ Configure SES for verified email sending.
 Environment Configuration:
 Use AWS Parameter Store or Secrets Manager for sensitive configurations.
 
-## 17. Risks and Mitigations
+## 11. Risks and Mitigations
 
 - Risk: Delays in email delivery via SES.
 
