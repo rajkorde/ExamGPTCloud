@@ -4,7 +4,7 @@
 
 ExamGPT helps users prepare for their exams by automatically generating flashcards and multiple-choice questions from their study materials (eg. PDF files). Studying techniques like [Spaced Repetition](https://en.wikipedia.org/wiki/Spaced_repetition) and [Retreival learning](https://ctl.wustl.edu/resources/using-retrieval-practice-to-increase-student-learning/) are common among students and creating high quality flash cards is a key component of these learning methods. There are software solutions like Anki and Quizlet that let students use flash cards effectively, but creating these flash cards is a time consuming process. This project attempts to solve that problem using AI.
 
-In ExamGPT, users goto a [website](https://myexamgpt.com/) and upload the their study material and get an exam code. Once ExamGPT is done processing the study material, it sends the user an email signalling completion and detailing next steps. Then the user can download [Telegram](https://telegram.org/) and practice using flashcards and multiple choice quizzes using their exam code and the ExamGPT telegram bot.
+In ExamGPT, users goto a [website](https://myexamgpt.com/) and upload the their study material and get an exam code. Once ExamGPT is done processing the study material, it sends the user an email signalling completion and detailing next steps. Then the user can download [Telegram](https://telegram.org/) and practice using flashcards and multiple choice questions (MCQs) using their exam code and the ExamGPT telegram bot.
 
 The infrastructure is implemented using AWS. The frontend is a simple React App hosted as a static S3 website. The backend is fully serverless and easily scalable and uses a number of AWS services.
 
@@ -18,51 +18,102 @@ _Note: Replace the link with the actual diagram link._
 
 ### 4.1 Frontend
 
-- Technology: React.js
+- Technology: React.js, Bootstrap
+- Requirements: Works on all mobile, tablets and desktop.
 - Hosting: AWS S3 (Static Website Hosting)
 - Features:
-  - User input form for Exam Name, Email, and PDF upload.
-  - Displays exam_code after submission.
-  - Handles file upload to S3 via pre-signed URL.
+  - Inform the user User about ExamGPT.
+  - Get input form for Exam Name, Email, and PDF upload and send to backend.
+  - Upload Study material (refered to PDF file from here on) to pre-signed URL provided by backend.
+  - Displays exam_code after submission and show next steps.
 
 ### 4.2 Backend
 
 - AWS Lambda Functions
+
   - create_exam:
-    - Generates a unique exam_code.
-    - Stores exam details in ExamTable (DynamoDB).
-    - Generates a pre-signed S3 URL.
-  - Chunker:
-    - Triggered by S3 put object event.
-    - Chunks PDF into smaller parts.
-    - Stores chunks in ChunkTable (DynamoDB).
-    - Publishes SNS messages to ChunkTopic.
-  - Generate:
-    - Subscribed to ChunkTopic.
-    - Generates flashcards and MCQs for each chunk.
-    - Stores data in QATable (DynamoDB).
-    - For the last batch, publishes to ValidateTopic.
-  - Validate:
-    - Subscribed to ValidateTopic.
-    - Verifies all chunks are processed.
-    - Sends completion email via SES.
-  - ChatServer:
+    - Creates the initial Exam and pre-signed URL
+    - Trigger: /create_exam in API Gateway
+    - Inputs: Exam Name, Email, pdf File location
+    - Functionality:
+      - Creates an Exam object with a unique exam_code
+      - Stores Exam object with all exam details in ExamTable (DynamoDB).
+      - Generates a pre-signed S3 URL and sends it (and exam_code) to frontend.
+    - Notes:
+      - Uses pre-signed S3 URL because direct upload through API gateway has a limit of 10 MB. Upload using pre-signed S3 URL is 5 GB.
+  - chunker:
+    - Chunks pdf files into small chunks and triggers a series of generate lambdas that will create flashcards and multiple choices questions (refered to QA henceforth) for each of the chunks
+    - Trigger: S3 ObjectCreated event.
+    - Inputs: bucket_name, location (of the object), exam_code (extracted from object path)
+    - Functionality:
+      - Downloads study material from S3
+      - Chunks PDF into smaller parts.
+      - Stores chunks in ChunkTable (DynamoDB).
+      - Creates ExamTracker object and saves in WorkTrackerTable (DynamoDB). This table is used for handling race conditions when various generate lambdas finish.
+      - Updates Exam state to CHUNKED.
+      - Breaks list of chunks in batches of CHUNK_BATCH_SIZE and publishes one SNS messages to ChunkTopic for each batch.
+    - Notes:
+      - Since spinning up a new lambda for each chunk would be slow and spinning up only a single lambda would not be practical (because of 15 minute execution limits of AWS lambdas), a batching approach is used. Each generate lambda would handle a batch of chunks.
+      - To ensure that we can track the completion of all of the generate lamdbas, a work tracker table is used that tracks the completion of each generate lambda.
+  - generate:
+
+    - Generate a set of QA (flash cards and multiple choices) for a batch of chunks using AI.
+    - Trigger: Subscribed to SNS ChunkTopic
+    - Inputs: list of chunk_ids (indicating the batch), exam_code, last_chunk (indicating whether this is the last batch of chunks)
+    - Functionality:
+
+      - Get all chunk objects and exam object from DynamoDB tables (ExamTable and ChunkTable)
+      - Get model keys from SSM
+      - Generates flashcards and MCQs for each chunk.
+      - For each chunk that generates at least one Flashcard or MCQ, sets the appropriate flags in the ChunkTable
+      - Stores all Flashcards and MCQs in QATable (DynamoDB).
+      - Once it is done with the work, updates the completed_worker count in WorkTrackerTable.
+      - If its the last batch, publishes SNS message to ValidateTopic.
+
+    - Notes:
+      - The AI model first checks if the chunk has enough content to generate a flashcard or MCQ. Sometimes the chunk is mainly comprised on Table of Contents or copyright notices etc, so this is skipped
+
+  - validate:
+
+    - Validates that QA has been generated correctly for an exam. Publishes some stats on the QA generation.
+    - Trigger: Subscribed to SNS ValidateTopic
+    - Input: exam_code
+    - Functionality
+      - Gets Exam object from ExamTable (DynamoDB).
+      - Waits for all generate lambdas to finish using the WorkTrackerTable (or times out).
+      - Gets Chunks and QAs from DynamoDB and publishes stats on processing of the exam.
+      - If most of the chunks are processed (controlled by CHUNK_PROCESSED_RATIO), considers the QA generation as complete.
+      - If QA generation is complete, sends completion email to user via SES.
+
+  - chat_server:
     - Handles Telegram bot interactions.
-    - Stores chat state in S3.
-    - Supports u\* ser commands for exam registration and practice sessions.
-- AWS Services
+    - Trigger: /chat in API gateway
+    - Functionality:
+      - Gets telegram bot token from SSM
+      - Loads chat state from S3
+      - Initializes Telegram bot application with persistence initialized with chat state
+      - Processes the message using CommandHandlers and ConversationHandlers
+      - Saves chat state back to S3
+    - Notes:
+      - Chat state is stored in pickle format.
+
+- Other AWS Services
   - API Gateway: Routes HTTP requests to Lambda functions.
   - SSM Parameter Store: Config management for app (Secrets, Config, Runtime Environment etc)
   - DynamoDB Tables:
     - ExamTable: Stores exam metadata.
     - ChunkTable: Stores chunk information.
     - QATable: Stores generated flashcards and MCQs.
-- Amazon S3: Stores uploaded PDFs and chat states.
+    - WorkTrackerTable: Stores generate lamdbas state
+- Amazon S3:
+  - Stores uploaded PDFs (ContentBucket).
+  - Stores the telegram chat state (ChatBucket).
+  - Hosts the react frontend app (Domain Name).
 - Amazon SNS (Simple Notification Service):
   - Topics: ChunkTopic, ValidateTopic.
   - Facilitates communication between Lambdas.
 - Amazon SES (Simple Email Service):
-  Sends emails to users upon exam readiness.
+  - Sends emails to users upon exam readiness.
 
 ### 4.3 Third-Party Services
 
