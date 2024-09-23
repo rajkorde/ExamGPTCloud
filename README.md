@@ -155,55 +155,65 @@ _Note: Replace the link with the actual diagram link._
     - Fetch relevant data from QATable.
     - Store user session states in S3.
 
-### 7. Data Models
+## 7. Data Models
 
-7.1 ExamTable (DynamoDB)
+### 7.1 ExamTable (DynamoDB)
+
 Primary Key: exam_code (String)
 Attributes:
 exam_name: String
 email: String
 status: String (e.g., 'Processing', 'Ready')
-7.2 ChunkTable (DynamoDB)
+
+### 7.2 ChunkTable (DynamoDB)
+
 Primary Key: chunk_id (String)
 Sort Key: exam_code (String)
 Attributes:
 chunk_data: Binary or Text
 processed: Boolean
-7.3 QATable (DynamoDB)
+
+### 7.3 QATable (DynamoDB)
+
 Primary Key: qa_id (String)
 Attributes:
 exam_code: String
 chunk_id: String
 flashcards: List
-mcqs: List 9. API Specifications
-8.1 Endpoints
-POST /create_exam
+mcqs: List
 
-Description: Initiates exam creation.
-Request Body:
-json
-Copy code
-{
-"exam_name": "string",
-"email": "string"
-}
-Response:
-json
-Copy code
-{
-"exam_code": "string",
-"upload_url": "string"
-}
-POST /chat
+## 8. API Specifications
 
-Description: Handles Telegram bot webhooks.
-Request Body: Telegram's message format.
-Response: Depends on bot interaction.
-8.2 Security
-Authentication:
-API Gateway should implement API keys or IAM roles as needed.
-Validation:
-All inputs should be sanitized and validated. 9. Security Considerations
+### 8.1 Endpoints
+
+- POST /create_exam
+
+  - Description: Initiates exam creation.
+  - Request body:
+
+  ```code
+      {
+          "exam_name": "string",
+          "email": "string"
+      }
+  ```
+
+  - Response body:
+    ```code
+    {
+        "exam_code": "string",
+        "upload_url": "string"
+    }
+    ```
+
+- POST /chat
+
+  - Description: Handles Telegram bot webhooks.
+  - Request Body: Telegram's message format.
+  - Response: Depends on bot interaction.
+
+## 9. Security Considerations
+
 Data Protection:
 Use HTTPS for all API communications.
 Encrypt sensitive data at rest and in transit.
@@ -212,7 +222,10 @@ Implement IAM roles with the least privilege principle.
 Pre-signed URLs expire after a short duration.
 User Privacy:
 Comply with data protection regulations.
-Provide options for users to delete their data. 10. Deployment
+Provide options for users to delete their data.
+
+## 10. Deployment
+
 Frontend:
 Build React app and deploy to S3 bucket configured for static website hosting.
 Backend:
@@ -222,51 +235,14 @@ Configure DynamoDB tables and indexes.
 Set up SNS topics and subscriptions.
 Configure SES for verified email sending.
 Environment Configuration:
-Use AWS Parameter Store or Secrets Manager for sensitive configurations. 11. Testing
-Unit Tests:
-Write tests for each Lambda function using frameworks like Jest or Mocha.
-Integration Tests:
-Test interactions between components (e.g., Lambda triggering SNS).
-End-to-End Tests:
-Simulate user flows from frontend submission to Telegram bot interaction.
-Load Testing:
-Use tools like Artillery or JMeter to simulate high traffic. 12. Monitoring and Logging
-AWS CloudWatch:
-Monitor Lambda executions, API Gateway access logs, and errors.
-Alerts:
-Set up CloudWatch alarms for failures or performance thresholds.
-Logging:
-Implement structured logging within Lambda functions. 13. Scalability and Performance
-Serverless Architecture:
-Leverage AWS Lambda's auto-scaling capabilities.
-Optimizations:
-Optimize Lambda function memory and timeout settings.
-Use efficient algorithms for PDF chunking and content generation.
-Caching:
-Consider caching frequent reads from DynamoDB if necessary. 14. Future Enhancements
-Multi-language Support:
-Extend content generation to support multiple languages.
-Analytics Dashboard:
-Provide users with insights into their practice sessions.
-Additional Integrations:
-Expand to other messaging platforms like WhatsApp or Slack.
-AI Improvements:
-Implement advanced NLP models for better content generation. 15. Project Timeline
-Week 1-2: Set up the project environment, AWS services, and initial frontend.
-Week 3-4: Develop Lambda functions (create_exam, Chunker).
-Week 5-6: Implement Generate and Validate Lambdas.
-Week 7: Integrate Telegram bot and ChatServer Lambda.
-Week 8: Testing and debugging.
-Week 9: Deployment and final optimizations.
-Week 10: Documentation and project handover. 16. Documentation
-Code Documentation:
-Comment code and provide README files for repositories.
-User Guides:
-Create guides for users on how to use the platform.
-Developer Guides:
-Provide setup instructions and contribution guidelines for developers. 17. Risks and Mitigations
-Risk: High volume of users may cause Lambda throttling.
-Mitigation: Request AWS for higher concurrency limits.
-Risk: Delays in email delivery via SES.
-Mitigation: Monitor SES send rates and handle retries. 18. Conclusion
-This specification outlines the development plan for ExamGPT, detailing each component and its role in the system. By leveraging AWS's serverless services and integrating with popular platforms like Telegram, ExamGPT aims to provide an efficient and scalable solution for exam preparation.
+Use AWS Parameter Store or Secrets Manager for sensitive configurations.
+
+## 17. Risks and Mitigations
+
+- Risk: Delays in email delivery via SES.
+
+  - Mitigation: Monitor SES send rates and handle retries.
+
+- Risk: High volume of users may cause Lambda throttling.
+
+  - Mitigation: Request AWS for higher concurrency limits.
