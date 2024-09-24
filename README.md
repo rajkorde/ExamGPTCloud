@@ -8,9 +8,17 @@ In ExamGPT, users goto a [website](https://myexamgpt.com/) and upload the their 
 
 The infrastructure is implemented using AWS. The frontend is a simple React App hosted as a static S3 website. The backend is fully serverless and easily scalable and uses a number of AWS services.
 
+## 2. Demo
+
+_TBD_
+
 ## 3. System Architecture
 
+### 3.1 Software design
+
 _Talk about software architecture: Hexagonal Architecture as well_
+
+### 3.2 System Design
 
 _Note: Replace the link with the actual diagram link._
 
@@ -105,144 +113,104 @@ _Note: Replace the link with the actual diagram link._
     - ChunkTable: Stores chunk information.
     - QATable: Stores generated flashcards and MCQs.
     - WorkTrackerTable: Stores generate lamdbas state
-- Amazon S3:
-  - Stores uploaded PDFs (ContentBucket).
-  - Stores the telegram chat state (ChatBucket).
-  - Hosts the react frontend app (Domain Name).
-- Amazon SNS (Simple Notification Service):
-  - Topics: ChunkTopic, ValidateTopic.
-  - Facilitates communication between Lambdas.
-- Amazon SES (Simple Email Service):
-  - Sends emails to users upon exam readiness.
+  - Amazon S3:
+    - Stores uploaded PDFs (ContentBucket).
+    - Stores the telegram chat state (ChatBucket).
+    - Hosts the react frontend app (Domain Name).
+  - Amazon SNS (Simple Notification Service):
+    - Topics: ChunkTopic, ValidateTopic.
+    - Facilitates communication between Lambdas.
+  - Amazon SES (Simple Email Service):
+    - Sends emails to users upon exam readiness.
+  - Amazon CloudWatch for all logs.
 
 ### 4.3 Third-Party Services
 
 - Telegram Bot:
+
   - Provides an interactive interface for users to practice.
-  - Communicates with ChatServer via API Gateway.
+  - Communicates with ChatServer via API Gateway using a web hook.
 
-## 5. Data Flow
+- AI model providers:
+  - Creates Flash cards and MCQs from a given chunk of text.
 
-1. User Submission:
+## 5. AI Model
 
-   - User inputs Exam Name, Email, and uploads PDF.
-   - Frontend sends data to create_exam via API Gateway.
+- Foundation LLMs are used to generate Flash cards and MCQs from a given chunk. Any good model can be used with very minor changes in code. Current implementation uses OpenAI's gpt-4o-mini.
+- Each chunk is first evaluated to see if there is enough information in the chunk to create a meaningful question. Often times when a chunk is comprised of things like table of contents or copyright notices, there is no point in creating QA from this.
+- Model prompts can be customized for each model and scenario and are saved as a yaml file, so they can be versions.
+- Models are instructed to respond in a specific json format derived from FlashCard and MultipleChoice classes and formatting is enforced automatically using pydantic.
 
-2. Exam Creation:
-   - create_exam generates exam_code, stores details, and provides a pre-signed URL.
-   - Frontend uploads PDF to S3 using the pre-signed URL.
-3. PDF Processing:
-   - S3 triggers Chunker upon file upload.
-   - Chunker splits PDF into chunks, stores them, and notifies ChunkTopic.
-4. Content Generation:
-   - Generate Lambdas process each chunk batch from ChunkTopic.
-   - Generates flashcards and MCQs, storing them in QATable.
-   - Last Generate Lambda publishes to ValidateTopic.
-5. Validation and Notification:
-   - Validate Lambda ensures all content is generated.
-   - Sends an email to the user via SES.
-6. User Practice:
-   - User receives email instructions.
-   - Downloads Telegram and interacts with the ExamGPT bot.
-   - Bot requests are routed to ChatServer via API Gateway.
+## 6. Chat interface
 
-## 6. Detailed Component Specifications
+The chat interface is implemented as a Telegram chat bot. Telegram bots work by exposing certain commands to the user. The following commands are currently available.
 
-### 6.1 Frontend
-
-- User Interface:
-  - Responsive design for accessibility.
-  - Form fields: Exam Name (text), Email (email), PDF Upload (file).
-- Functionality:
-  - Validates user input before submission.
-  - Handles pre-signed URL response and uploads file to S3.
-  - Displays exam_code for user reference.
-
-### 6.2 Lambda Functions
-
-- **create_exam**
-  - Inputs: Exam Name, Email.
-  - Processes:
-    Generate unique exam_code (e.g., UUID).
-  - Store exam details in ExamTable:
-    exam_code, exam_name, email, status.
-    Generate pre-signed S3 URL for PDF upload.
-  - Outputs:
-    Return exam_code and pre-signed URL to frontend.
-- **Chunker**
-  - Trigger: S3 put event on PDF upload bucket.
-  - Processes:
-    - Retrieve PDF from S3.
-    - Split PDF into manageable chunks (e.g., pages or sections).
-    - Store each chunk in ChunkTable with chunk_id and exam_code.
-    - Publish messages to ChunkTopic with batch of chunk_ids and exam_code.
-- **Generate**
-  - Subscription: ChunkTopic.
-  - Processes:
-    - For each batch, retrieve chunks from ChunkTable.
-    - Generate flashcards and MCQs using NLP techniques.
-    - Store generated content in QATable:
-      - exam_code, chunk_id, flashcards, mcqs.
-  - Completion:
-    - The last Generate Lambda publishes to ValidateTopic.
-- **Validate**
-  - Subscription: ValidateTopic.
-  - Processes:
-    - Confirm all chunks have been processed.
-    - Cross-verify entries in QATable against ChunkTable.
-    - Update ExamTable status to 'Ready'.
-    - Send notification email via SES.
-- **ChatServer**
-  Trigger: API Gateway (HTTP requests from Telegram bot).
-  - Processes:
-    - Authenticate and map users via exam_code.
-      Handle commands:
-      - /register [exam_code]
-      - /practice_flashcards
-      - /take_quiz
-    - Fetch relevant data from QATable.
-    - Store user session states in S3.
+- /start or /help: Provides an overview of all commands for the chatbot. Implemented as CommandHandler.
+- /exam exam_code: This command is used by the user to set the exam code in the interface, so that they can start practicing for this specific exam. Implemented as CommandHandler.
+- /fc n [topic]: Users use this command to start practices n random flashcards. If n is not provided, default is 1. The n flashcards are randomly chosen from all the flashcards. User can specify an optional but arbitrary topic, that would let them practice on flash cards related to a specific topic only. This functionality is not implemented.
+- /mc n [topic]: Same as flashcards, but for multiple choice questions.
 
 ## 7. Data Models
 
-### 7.1 ExamTable (DynamoDB)
+All tables are implemented in Dyanmodb.
 
-Primary Key: exam_code (String)
-Attributes:
-exam_name: String
-email: String
-status: String (e.g., 'Processing', 'Ready')
+### 7.1 ExamTable
 
-### 7.2 ChunkTable (DynamoDB)
+- Primary Key: exam_code (String)
+- Attributes:
+  - email: String
+  - name: String
+  - sources: List[String]
+  - state: String (Enum)
+  - last_updated: String
 
-Primary Key: chunk_id (String)
-Sort Key: exam_code (String)
-Attributes:
-chunk_data: Binary or Text
-processed: Boolean
+### 7.2 ChunkTable
 
-### 7.3 QATable (DynamoDB)
+- Primary Key: chunk_id (String)
+- Sort Key: exam_code (String)
+- Attributes:
+  - flash_card_generated: Boolean
+  - multiple_choice_generated: Boolean
+  - is_empty_context: Boolean
+  - text: String: String
 
-Primary Key: qa_id (String)
-Attributes:
-exam_code: String
-chunk_id: String
-flashcards: List
-mcqs: List
+### 7.3 QATable
+
+model_family is used for model provider (eg OpenAI, Google etc) and model_name is the specific model (eg gpt-4o). type is used to indicate whether the question is a flashcard or a multiple choice.
+
+- Primary Key: qa_id (String)
+- Sort Key: exam_code (String)
+- Attributes:
+  - question: String
+  - answer: String
+  - choices: Map
+  - chunk_id: String
+  - model_family: String
+  - model_name: String
+  - type: String (Enum)
+  - last_updated: String
+
+### 7.4 WorkTrackerTable
+
+- Primary Key: qa_id (String)
+- Attributes:
+  - exam_code: String
+  - total_workers: Number
+  - completed_workers: Number
 
 ## 8. API Specifications
 
-### 8.1 Endpoints
-
 - POST /create_exam
 
-  - Description: Initiates exam creation.
+  - Description: Initiates exam creation. exam_code is not shown in UI, it is only for internal use. The pre-signed URL itself is comprised on the url itself and a dict of fields like TTL, object location etc.
   - Request body:
 
   ```code
       {
           "exam_name": "string",
-          "email": "string"
+          "filenames": "string",
+          "email": "string",
+          "exam_code": "string"
       }
   ```
 
@@ -250,7 +218,7 @@ mcqs: List
     ```code
     {
         "exam_code": "string",
-        "upload_url": "string"
+        "url": "string"
     }
     ```
 
@@ -262,35 +230,31 @@ mcqs: List
 
 ## 9. Security Considerations
 
-Data Protection:
-Use HTTPS for all API communications.
-Encrypt sensitive data at rest and in transit.
-Access Control:
-Implement IAM roles with the least privilege principle.
-Pre-signed URLs expire after a short duration.
-User Privacy:
-Comply with data protection regulations.
-Provide options for users to delete their data.
+- Data Protection:
+  - Use HTTPS for all API communications.
+  - Encrypt sensitive data at rest and in transit.
+  - All secrets are encoded inside SSM.
+- Access Control:
+  - Implement IAM roles with the least privilege principle.
+  - Pre-signed URLs expire after a short duration.
+- User Privacy:
+  - _TBD_
 
 ## 10. Deployment
 
-Frontend:
-Build React app and deploy to S3 bucket configured for static website hosting.
-Backend:
-Deploy Lambda functions via AWS SAM or Serverless Framework.
-Set up API Gateway routes and integrations.
-Configure DynamoDB tables and indexes.
-Set up SNS topics and subscriptions.
-Configure SES for verified email sending.
-Environment Configuration:
-Use AWS Parameter Store or Secrets Manager for sensitive configurations.
+- Backend:
+  - Entire backend is configured and deployed using Infra as code using AWS SAM template and CloudFormation.
+  - Secrets are uploaded from a .env file to SSM using a python script.
+- Frontend:
+  - Front end deployment is currently. Build React app (npm run build) and deploy to S3 bucket configured for static website hosting through AWS Console (or aws s3 sync)
+  - Note SES can currently only send mails to pre-verified email addresses since I dont have production access yet
 
-## 11. Risks and Mitigations
+## 11. Incomplete work
 
-- Risk: Delays in email delivery via SES.
+- Work: Email delivery to pre-verified addresses only
 
-  - Mitigation: Monitor SES send rates and handle retries.
+  - Next Steps: Implement Bounce strategy and apply for SES production
 
-- Risk: High volume of users may cause Lambda throttling.
+- Work: PDF chunking uses a primitive library
 
-  - Mitigation: Request AWS for higher concurrency limits.
+  - Next Steps: While this works for the most part, it cannot handle images and tables inside pdf. There are many better libraries available, but they use torch. Downloading torch on lambda would exceed the allowed deployed package limits provided by AWS. The solution requires a major rearchitecture (move to EKS/ECS)
