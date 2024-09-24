@@ -26,9 +26,9 @@ Most of the backend code resides in `examgpt-backend/examgpt-backend`. Following
   - `ports` - Contains all the abstract classes for external service integration
   - `commands` - Contains classes that define the inputs for all the domain commands (eg create_exam, save_chunk etc). All inputs for all commands are pydantic classes, so the input validation logic for domain commands is separated from business logic.
   - `command_handlers` - Contains the implementation for all the domain commands (eg create_exam, save_chunk etc) using the service abstractions defined in ports folder.
-  - `ai` - Contains implementation for AI based codes using the service abstractions defined in ports folder.
+  - `ai` - Contains implementation for AI based code using the service abstractions defined in ports folder.
   - `chat` - Contains helper classes for Telegram Bot implementation
-  - `chunker` - Contains abstractions and classes for chunking pdf files.
+  - `chunker` - Contains abstractionss and concrete classes for chunking pdf files.
 - `adapter` - Contains the concrete classes that implement all the abstractions from ports directory
   - `aws` - Contains implementation of all AWS related services
   - `ai` - Contains implementation of all AI related services.
@@ -477,7 +477,7 @@ model_family is used for model provider (eg OpenAI, Google etc) and model_name i
 
 - Work: Email delivery to pre-verified addresses only due to staging access.
 
-  - Next Steps: Implement Bounce strategy and apply for SES production
+  - Next Steps: Implement Bounce strategy and apply for SES prod access.
 
 - Work: PDF chunking uses pymupdf library, which is not very effective
 
