@@ -35,7 +35,68 @@ Most of the backend code resides in `examgpt-backend/examgpt-backend`. Following
 
 ### 3.2 System Design
 
+### Create Exam Form submission sequence diagram
+
+This diagram shows the sequence of events when the user submits a create exam form.
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant FE as Frontend (React)
+    participant AG as API Gateway
+    participant CEL as Create Exam Lambda
+    participant S3 as S3
+    participant CL as Chunker Lambda
+    participant SNS as SNS
+    participant GL as Generate Lambda
+    participant VL as Validate Lambda
+    participant DDB as DynamoDB
+    participant SES as SES
+
+    activate U
+    U->>FE: Submit form (Exam Name, Email, PDF)
+    FE->>AG: POST request /create_exam
+    activate AG
+    AG->>CEL: Invoke Lambda
+    CEL->>CEL: Generate exam_code
+    CEL->>DDB: Save exam details in ExamTable
+    CEL->>S3: Generate pre-signed URL
+    CEL-->>AG: Return exam_code and URL
+    AG-->>FE: Return exam_code and URL
+    deactivate AG
+    FE->>S3: Upload PDF using pre-signed URL
+    FE-->>U: Display exam_code and next steps
+    deactivate U
+
+    S3->>CL: Trigger Chunker Lambda
+    CL->>S3: Download pdf files
+    CL->>CL: Process PDF into chunks
+    CL->>DDB: Save chunks to ChunkTable
+    CL->>DDB: Update ExamState to chunked in ExamTable
+    CL->>DDB: Create work tracker item in WorkTrackerTable
+    CL->>SNS: Publish chunk batches to Chunk Topic
+
+    par spin up generate lambda for each batch
+    SNS->>GL: Trigger Generate Lambda through ChunkTopic
+    GL->>DDB: Download all Chunks in batch and Exam from ChunkTable and ExamTable
+    GL->>GL: Generate flashcards and MCQs
+    GL->>DDB: Save Q&As to QATable
+    GL->>DDB: Update completed_workers in WorkTrackerTable
+    GL-->>SNS: Publish to ValidatTopic if processing last batch
+    end
+
+    SNS->>VL: Trigger Validate Lambda through ValidateTopic
+    VL->>VL: Wait for all generate lambdas to finish
+    VL->>DDB: Verify all chunks processed
+    VL->>DDB: Update exam status
+    VL->>SES: Send completion email
+    SES-->>U: Receive email notification
+
+```
+
 ### Telegram chatbot sequence diagram
+
+This diagram shows the sequence of events when the user chats with the Telgram Chat bot
 
 ```mermaid
 sequenceDiagram
@@ -48,7 +109,7 @@ sequenceDiagram
     participant ExamDDB as DynamoDB (ExamTable)
 
     U->>TB: Start chat / Send message
-    TB->>AG: Forward request
+    TB->>AG: Forward request to /chat endpoint
     AG->>CSL: Invoke Lambda
     CSL->>S3: Load chat state
     S3-->>CSL: Return chat state
