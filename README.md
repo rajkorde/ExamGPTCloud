@@ -53,8 +53,9 @@ sequenceDiagram
     participant DDB as DynamoDB
     participant SES as SES
 
-    activate U
+
     U->>FE: Submit form (Exam Name, Email, PDF)
+    activate U
     FE->>AG: POST request /create_exam
     activate AG
     AG->>CEL: Invoke Lambda
@@ -163,7 +164,57 @@ sequenceDiagram
 
 ```
 
-_Note: Replace the link with the actual diagram link._
+### Data Flow Diagram
+
+```mermaid
+graph TB
+    subgraph "Frontend"
+        A[React Website]
+    end
+
+    subgraph "AWS Services"
+        B[S3 Static Website Hosting]
+        C[API Gateway]
+        D[Lambda: create_exam]
+        E[DynamoDB: ExamTable]
+        F[S3: PDF Storage]
+        G[Lambda: Chunker]
+        H[DynamoDB: ChunkTable]
+        I[SNS: ChunkTopic]
+        J[Lambda: Generate]
+        K[DynamoDB: QATable]
+        L[SNS: ValidateTopic]
+        M[Lambda: Validate]
+        N[SES: Email Service]
+        O[Lambda: ChatServer]
+        P[S3: Chat State Storage]
+    end
+
+    subgraph "User Devices"
+        Q[Telegram App]
+    end
+
+    A -->|1. Submit Form| C
+    C -->|2. Route Request| D
+    D -->|3. Create Exam| E
+    D -->|4. Generate Pre-signed URL| F
+    D -->|5. Return exam_code and URL| C
+    C -->|6. Return exam_code and URL| A
+    A -->|7. Upload PDF| F
+    F -->|8. Trigger on Put| G
+    G -->|9. Save Chunks| H
+    G -->|10. Send Chunk Batches| I
+    I -->|11. Trigger| J
+    J -->|12. Save Q&A| K
+    J -->|13. Notify Last Batch| L
+    L -->|14. Trigger| M
+    M -->|15. Validate Processing| K
+    M -->|16. Send Email| N
+    Q -->|17. Chat Requests| C
+    C -->|18. Route Chat| O
+    O -->|19. Save/Load State| P
+    O -->|20. Retrieve Q&A| K
+```
 
 ## 4. Components
 
@@ -348,16 +399,17 @@ model_family is used for model provider (eg OpenAI, Google etc) and model_name i
   - Description: Initiates exam creation. exam_code is not shown in UI, it is only for internal use. The pre-signed URL itself is comprised on the url itself and a dict of fields like TTL, object location etc.
   - Request body:
 
-  ```code
+    ```code
       {
           "exam_name": "string",
           "filenames": "string",
           "email": "string",
           "exam_code": "string"
       }
-  ```
+    ```
 
   - Response body:
+
     ```code
     {
         "exam_code": "string",
@@ -380,8 +432,6 @@ model_family is used for model provider (eg OpenAI, Google etc) and model_name i
 - Access Control:
   - Implement IAM roles with the least privilege principle.
   - Pre-signed URLs expire after a short duration.
-- User Privacy:
-  - _TBD_
 
 ## 10. Deployment
 
@@ -389,15 +439,15 @@ model_family is used for model provider (eg OpenAI, Google etc) and model_name i
   - Entire backend is configured and deployed as Infra as code using AWS SAM template and CloudFormation.
   - Secrets are uploaded from a .env file to SSM using a python script.
 - Frontend:
-  - Front end deployment is currently. Build React app (npm run build) and deploy to S3 bucket configured for static website hosting through AWS Console (or aws s3 sync)
+  - Front end deployment is currently manual. Build React app (npm run build) and deploy to S3 bucket configured for static website hosting through AWS Console (or aws s3 sync)
   - Note: SES can currently only send mails to pre-verified email addresses since I dont have production access yet
 
 ## 11. Incomplete work
 
-- Work: Email delivery to pre-verified addresses only
+- Work: Email delivery to pre-verified addresses only due to staging access.
 
   - Next Steps: Implement Bounce strategy and apply for SES production
 
-- Work: PDF chunking uses a primitive library
+- Work: PDF chunking uses pymupdf library, which is not very effective
 
   - Next Steps: While this works for the most part, it cannot handle images and tables inside pdf. There are many better libraries available, but they use torch. Downloading torch on lambda would exceed the allowed deployed package limits provided by AWS. The solution requires a major rearchitecture (move to EKS/ECS)

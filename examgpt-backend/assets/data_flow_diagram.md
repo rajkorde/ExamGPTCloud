@@ -1,37 +1,49 @@
 ```mermaid
-graph TD
-    U[User] -->|Exam Name, Email, PDF| W[Website]
-    W -->|Form Data| AG[API Gateway]
-    AG -->|Request| CE[Create Exam Lambda]
-    CE -->|Exam Details| ET[ExamTable]
-    CE -->|Generate| PS[Pre-signed URL]
-    PS -->|URL| W
-    W -->|exam_code| U
-    W -->|PDF| S3[S3 Storage]
-    S3 -->|Trigger| CL[Chunker Lambda]
-    CL -->|Chunks| CT[ChunkTable]
-    CL -->|Chunk Batches| SNS[SNS ChunkTopic]
-    SNS -->|Trigger| GL[Generate Lambda]
-    GL -->|Flashcards, MCQs| QA[QATable]
-    GL -->|Last Batch| VT[SNS ValidateTopic]
-    VT -->|Trigger| VL[Validate Lambda]
-    VL -->|Verification| QA
-    VL -->|Email Notification| SES[SES]
-    SES -->|Email| U
-    U -->|exam_code| TB[Telegram Bot]
-    TB -->|Chat Request| AG
-    AG -->|Request| CSL[ChatServer Lambda]
-    CSL -->|Chat State| S3
-    CSL -->|Retrieve Q&A| QA
-    CSL -->|Response| TB
-    TB -->|Practice Questions| U
+graph TB
+    subgraph "Frontend"
+        A[React Website]
+    end
 
-    classDef process fill:#f9f,stroke:#333,stroke-width:2px;
-    classDef data fill:#bbf,stroke:#333,stroke-width:2px;
-    classDef external fill:#fbb,stroke:#333,stroke-width:2px;
+    subgraph "AWS Services"
+        B[S3 Static Website Hosting]
+        C[API Gateway]
+        D[Lambda: create_exam]
+        E[DynamoDB: ExamTable]
+        F[S3: PDF Storage]
+        G[Lambda: Chunker]
+        H[DynamoDB: ChunkTable]
+        I[SNS: ChunkTopic]
+        J[Lambda: Generate]
+        K[DynamoDB: QATable]
+        L[SNS: ValidateTopic]
+        M[Lambda: Validate]
+        N[SES: Email Service]
+        O[Lambda: ChatServer]
+        P[S3: Chat State Storage]
+    end
 
-    class U,W,TB external;
-    class ET,CT,QA,S3 data;
-    class CE,CL,GL,VL,CSL process;
-    class AG,SNS,VT,SES,PS process;
+    subgraph "User Devices"
+        Q[Telegram App]
+    end
+
+    A -->|1. Submit Form| C
+    C -->|2. Route Request| D
+    D -->|3. Create Exam| E
+    D -->|4. Generate Pre-signed URL| F
+    D -->|5. Return exam_code and URL| C
+    C -->|6. Return exam_code and URL| A
+    A -->|7. Upload PDF| F
+    F -->|8. Trigger on Put| G
+    G -->|9. Save Chunks| H
+    G -->|10. Send Chunk Batches| I
+    I -->|11. Trigger| J
+    J -->|12. Save Q&A| K
+    J -->|13. Notify Last Batch| L
+    L -->|14. Trigger| M
+    M -->|15. Validate Processing| K
+    M -->|16. Send Email| N
+    Q -->|17. Chat Requests| C
+    C -->|18. Route Chat| O
+    O -->|19. Save/Load State| P
+    O -->|20. Retrieve Q&A| K
 ```
