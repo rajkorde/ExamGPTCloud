@@ -16,17 +16,17 @@ _TBD_
 
 ### 3.1 Software design
 
-The implementation mostly follows the [hexagonal architecture](<https://en.wikipedia.org/wiki/Hexagonal_architecture_(software)>) and the create_exam() API is handled as a choreographed [SAGA pattern](https://microservices.io/patterns/data/saga.html).
+The implementation follows the [hexagonal architecture](<https://en.wikipedia.org/wiki/Hexagonal_architecture_(software)>) and the create_exam() API is handled roughly as a choreographed [SAGA pattern](https://microservices.io/patterns/data/saga.html).
 
 Most of the backend code resides in `examgpt-backend/examgpt-backend`. Following the practices of hexagonal architecture, the folder structure is broken down as follows:
 
 - `entrypoints` - contains code for all the lambda handlers.
-- `domain` - This folder handlers all the core logic, domain commands and abstractions
+- `domain` - This folder handles all the core classes and logic, domain commands and abstractions
   - `model` - Contains all the core classes.
   - `ports` - Contains all the abstract classes for external service integration
-  - `commands` - Contains classes that define the inputs for all the domain commands (eg create_exam, save_chunk etc). All inputs for all commands are pydantic classes, so the input validation logic is separated from business logic
+  - `commands` - Contains classes that define the inputs for all the domain commands (eg create_exam, save_chunk etc). All inputs for all commands are pydantic classes, so the input validation logic for domain commands is separated from business logic.
   - `command_handlers` - Contains the implementation for all the domain commands (eg create_exam, save_chunk etc) using the service abstractions defined in ports folder.
-  - `ai` - Contains all implementation for AI based codes using the service abstractions defined in ports folder.
+  - `ai` - Contains implementation for AI based codes using the service abstractions defined in ports folder.
   - `chat` - Contains helper classes for Telegram Bot implementation
   - `chunker` - Contains abstractions and classes for chunking pdf files.
 - `adapter` - Contains the concrete classes that implement all the abstractions from ports directory
@@ -34,6 +34,73 @@ Most of the backend code resides in `examgpt-backend/examgpt-backend`. Following
   - `ai` - Contains implementation of all AI related services.
 
 ### 3.2 System Design
+
+### Telegram chatbot sequence diagram
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant TB as Telegram Bot
+    participant AG as API Gateway
+    participant CSL as ChatServer Lambda
+    participant S3 as S3 (Chat State)
+    participant DDB as DynamoDB (QATable)
+    participant ExamDDB as DynamoDB (ExamTable)
+
+    U->>TB: Start chat / Send message
+    TB->>AG: Forward request
+    AG->>CSL: Invoke Lambda
+    CSL->>S3: Load chat state
+    S3-->>CSL: Return chat state
+
+
+    alt Command: /exam exam_code
+        U->>TB: Send exam_code
+        TB->>AG: Forward exam_code
+        AG->>CSL: Pass exam_code
+        CSL->>ExamDDB: Load exam_code
+        ExamDDB-->>CSL: Confirm exam exists and send exam object
+        CSL->>TB: Confirm registration
+        TB->>U: Registration confirmed
+    else Command: /fc n [topic]
+        CSL->>DDB: Fetch n flashcards
+        DDB-->>CSL: Return n flashcards
+        CSL->>CSL: Update Bot data with question list
+        loop n times
+            CSL->>TB: Send flashcard
+            TB->>U: Display flashcard
+            U->>TB: Select Show next
+            TB->>CSL: Pass Show next
+            CSL->>CSL: Update internal state
+        end
+    else Command: /mc n [topic]
+        CSL->>DDB: Fetch n MCQs
+        DDB-->>CSL: Return n MCQs
+        CSL->>CSL: Update Bot data with question list and last correct answer
+        alt is not last answer
+            loop n times
+                CSL->>TB: Send MCQ
+                TB->>U: Display MCQ and options
+                U->>TB: Select answer option
+                TB->>CSL: Pass answer option
+                CSL->>CSL: Update internal state
+                CSL->>TB: Pass if the answer was correct or not
+                TB->>U: Show if the answer was correct or not
+            end
+        else is last answer
+            CSL->>TB: Pass if the last answer was correct or not
+            CSL->>TB: Pass stats about the quiz
+            TB->>U: Show if the answer was correct or not
+            TB->>U: Show quiz stats
+        end
+    end
+
+    CSL->>S3: Save updated chat state
+    CSL->>AG: Return response
+    AG->>TB: Forward response
+    TB->>U: Display response
+
+```
 
 _Note: Replace the link with the actual diagram link._
 
@@ -54,7 +121,7 @@ _Note: Replace the link with the actual diagram link._
 
 - AWS Lambda Functions
 
-  - create_exam:
+  - `create_exam`:
     - Creates the initial Exam and pre-signed URL
     - Trigger: /create_exam in API Gateway
     - Inputs: Exam Name, Email, pdf File location
@@ -64,7 +131,7 @@ _Note: Replace the link with the actual diagram link._
       - Generates a pre-signed S3 URL and sends it (and exam_code) to frontend.
     - Notes:
       - Uses pre-signed S3 URL because direct upload through API gateway has a limit of 10 MB. Upload using pre-signed S3 URL is 5 GB.
-  - chunker:
+  - `chunker`:
     - Chunks pdf files into small chunks and triggers a series of generate lambdas that will create flashcards and multiple choices questions (refered to QA henceforth) for each of the chunks
     - Trigger: S3 ObjectCreated event.
     - Inputs: bucket_name, location (of the object), exam_code (extracted from object path)
@@ -78,7 +145,7 @@ _Note: Replace the link with the actual diagram link._
     - Notes:
       - Since spinning up a new lambda for each chunk would be slow and spinning up only a single lambda would not be practical (because of 15 minute execution limits of AWS lambdas), a batching approach is used. Each generate lambda would handle a batch of chunks.
       - To ensure that we can track the completion of all of the generate lamdbas, a work tracker table is used that tracks the completion of each generate lambda.
-  - generate:
+  - `generate`:
 
     - Generate a set of QA (flash cards and multiple choices) for a batch of chunks using AI.
     - Trigger: Subscribed to SNS ChunkTopic
@@ -96,7 +163,7 @@ _Note: Replace the link with the actual diagram link._
     - Notes:
       - The AI model first checks if the chunk has enough content to generate a flashcard or MCQ. Sometimes the chunk is mainly comprised on Table of Contents or copyright notices etc, so this is skipped
 
-  - validate:
+  - `validate`:
 
     - Validates that QA has been generated correctly for an exam. Publishes some stats on the QA generation.
     - Trigger: Subscribed to SNS ValidateTopic
@@ -108,7 +175,7 @@ _Note: Replace the link with the actual diagram link._
       - If most of the chunks are processed (controlled by CHUNK_PROCESSED_RATIO), considers the QA generation as complete.
       - If QA generation is complete, sends completion email to user via SES.
 
-  - chat_server:
+  - `chat_server`:
     - Handles Telegram bot interactions.
     - Trigger: /chat in API gateway
     - Functionality:
@@ -127,7 +194,7 @@ _Note: Replace the link with the actual diagram link._
     - ExamTable: Stores exam metadata.
     - ChunkTable: Stores chunk information.
     - QATable: Stores generated flashcards and MCQs.
-    - WorkTrackerTable: Stores generate lamdbas state
+    - WorkTrackerTable: Stores generate lamdba state
   - Amazon S3:
     - Stores uploaded PDFs (ContentBucket).
     - Stores the telegram chat state (ChatBucket).
