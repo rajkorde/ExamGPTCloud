@@ -37,7 +37,9 @@ Most of the backend code resides in `examgpt-backend/examgpt-backend`. Following
 
 ### Create Exam Form submission sequence diagram
 
-This diagram shows the simplified version of the sequence of events when the user submits a create exam form.
+This diagram shows the simplified version of the sequence of events when the user submits a create exam form. For ease of understanding, the diagram has been broken into 2 parts: One for what happens when a user submits a form and uploads the study material. And another for the sequence of events that follow uploads of the pdf file to S3 which triggers the next set of background processing.
+
+**Sequence diagram for exam form submission and upload study material**
 
 ```mermaid
 sequenceDiagram
@@ -46,13 +48,7 @@ sequenceDiagram
     participant AG as API Gateway
     participant CEL as create_exam Lambda
     participant S3 as S3
-    participant CL as chunker Lambda
-    participant SNS as SNS
-    participant GL as generate Lambda
-    participant VL as validate Lambda
     participant DDB as DynamoDB
-    participant SES as SES
-
 
     U->>FE: Submit form (Exam Name, Email, PDF)
     activate U
@@ -68,6 +64,31 @@ sequenceDiagram
     FE->>S3: Upload PDF using pre-signed URL
     FE-->>U: Display exam_code and next steps
     deactivate U
+
+```
+
+<br/>
+<br/>
+<br/>
+
+**Sequence diagram for post file upload**
+
+```mermaid
+sequenceDiagram
+
+    participant FE as Frontend (React)
+    participant S3 as S3
+    participant CL as chunker Lambda
+    participant SNS as SNS
+    participant DDB as DynamoDB
+    participant GL as generate Lambda
+    participant VL as validate Lambda
+    participant SES as SES
+    participant U as User
+
+
+    FE->>S3: Upload PDF using pre-signed URL
+
 
     S3->>CL: Trigger Chunker Lambda
     CL->>S3: Download pdf files
@@ -91,9 +112,13 @@ sequenceDiagram
     VL->>DDB: Verify all chunks processed
     VL->>DDB: Update exam status
     VL->>SES: Send completion email
-    SES-->>U: Receive email notification
+    SES->>U: Send email notification
 
 ```
+
+<br/>
+<br/>
+<br/>
 
 ### Telegram chatbot sequence diagram
 
@@ -164,9 +189,13 @@ sequenceDiagram
 
 ```
 
-### Data Flow Diagram
+<br/>
+<br/>
+<br/>
 
-This DFD shows the simplified version of overall sequence of events
+## 4. Data Flow Diagram
+
+The DFD below shows the simplified version of how the form submission for creating a new exam works.
 
 ```mermaid
 graph TB
@@ -213,10 +242,11 @@ graph TB
     M -->|20: Send Email| N
 ```
 
-## 4. Components
+## 5. Components
 
-### 4.1 Frontend
+### 5.1 Frontend
 
+- Domain: http://myexamgpt.com
 - Technology: React.js, Bootstrap
 - Requirements: Works on all mobile, tablets and desktop.
 - Hosting: AWS S3 (Static Website Hosting)
@@ -226,7 +256,7 @@ graph TB
   - Upload Study material (refered to PDF file from here on) to pre-signed URL provided by backend.
   - Displays exam_code after submission and show next steps.
 
-### 4.2 Backend
+### 5.2 Backend
 
 - AWS Lambda Functions
 
@@ -297,6 +327,7 @@ graph TB
       - Chat state is stored in pickle format.
 
 - Other AWS Services
+
   - API Gateway: Routes HTTP requests to Lambda functions.
   - SSM Parameter Store: Config management for app (Secrets, Config, Runtime Environment etc)
   - DynamoDB Tables:
@@ -313,9 +344,11 @@ graph TB
     - Facilitates communication between Lambdas.
   - Amazon SES (Simple Email Service):
     - Sends emails to users upon exam readiness.
+  - Amazon CloudFront/Route 53:
+    - Improves response times of the frontend
   - Amazon CloudWatch for all logs.
 
-### 4.3 Third-Party Services
+### 5.3 Third-Party Services
 
 - Telegram Bot:
 
@@ -325,27 +358,28 @@ graph TB
 - AI model providers:
   - Creates Flash cards and MCQs from a given chunk of text.
 
-## 5. AI Model
+## 6. AI Model
 
 - Foundation LLMs are used to generate Flash cards and MCQs from a given chunk. Any good model can be used with very minor changes in code. Current implementation uses OpenAI's gpt-4o-mini.
 - Each chunk is first evaluated to see if there is enough information in the chunk to create a meaningful question. Often times when a chunk is comprised of things like table of contents or copyright notices, there is no point in creating QA from this.
 - Model prompts can be customized for each model and scenario and are saved as a yaml file, so they can be versions.
 - Models are instructed to respond in a specific json format derived from FlashCard and MultipleChoice classes and formatting is enforced automatically using pydantic.
+- Currently json mode is being used for OpenAI, because constrained sampling wasnt released when the project started.
 
-## 6. Chat interface
+## 7. Chat interface
 
 The chat interface is implemented as a Telegram chat bot. Telegram bots work by exposing certain commands to the user. The following commands are currently available.
 
-- /start or /help: Provides an overview of all commands for the chatbot. Implemented as CommandHandler.
-- /exam exam_code: This command is used by the user to set the exam code in the interface, so that they can start practicing for this specific exam. Implemented as CommandHandler.
-- /fc n [topic]: Users use this command to start practices n random flashcards. If n is not provided, default is 1. The n flashcards are randomly chosen from all the flashcards. User can specify an optional but arbitrary topic, that would let them practice on flash cards related to a specific topic only. This functionality is not implemented.
-- /mc n [topic]: Same as flashcards, but for multiple choice questions.
+- `/start` or `/help`: Provides an overview of all commands for the chatbot. Implemented as CommandHandler.
+- `/exam exam_code`: This command is used by the user to set the exam code in the interface, so that they can start practicing for this specific exam. Implemented as CommandHandler.
+- `/fc n [topic]`: Users use this command to start practices n random flashcards. If n is not provided, default is 1. The n flashcards are randomly chosen from all the flashcards. User can specify an optional but arbitrary topic, that would let them practice on flash cards related to a specific topic only. This functionality is not implemented.
+- `/mc n [topic]`: Same as flashcards, but for multiple choice questions.
 
-## 7. Data Models
+## 8. Data Models
 
 All tables are implemented in Dyanmodb.
 
-### 7.1 ExamTable
+`ExamTable`
 
 - Primary Key: exam_code (String)
 - Attributes:
@@ -355,7 +389,7 @@ All tables are implemented in Dyanmodb.
   - state: String (Enum)
   - last_updated: String
 
-### 7.2 ChunkTable
+`ChunkTable`
 
 - Primary Key: chunk_id (String)
 - Sort Key: exam_code (String)
@@ -365,7 +399,7 @@ All tables are implemented in Dyanmodb.
   - is_empty_context: Boolean
   - text: String: String
 
-### 7.3 QATable
+`QATable`
 
 model_family is used for model provider (eg OpenAI, Google etc) and model_name is the specific model (eg gpt-4o). type is used to indicate whether the question is a flashcard or a multiple choice.
 
@@ -381,7 +415,7 @@ model_family is used for model provider (eg OpenAI, Google etc) and model_name i
   - type: String (Enum)
   - last_updated: String
 
-### 7.4 WorkTrackerTable
+`WorkTrackerTable`
 
 - Primary Key: qa_id (String)
 - Attributes:
@@ -389,9 +423,9 @@ model_family is used for model provider (eg OpenAI, Google etc) and model_name i
   - total_workers: Number
   - completed_workers: Number
 
-## 8. API Specifications
+## 9. API Specifications
 
-- POST /create_exam
+- `POST /create_exam`
 
   - Description: Initiates exam creation. exam_code is not shown in UI, it is only for internal use. The pre-signed URL itself is comprised on the url itself and a dict of fields like TTL, object location etc.
   - Request body:
@@ -414,13 +448,13 @@ model_family is used for model provider (eg OpenAI, Google etc) and model_name i
     }
     ```
 
-- POST /chat
+- `POST /chat`
 
   - Description: Handles Telegram bot webhooks.
   - Request Body: Telegram's message format.
   - Response: Depends on bot interaction.
 
-## 9. Security Considerations
+## 10. Security Considerations
 
 - Data Protection:
   - Use HTTPS for all API communications.
@@ -430,7 +464,7 @@ model_family is used for model provider (eg OpenAI, Google etc) and model_name i
   - Implement IAM roles with the least privilege principle.
   - Pre-signed URLs expire after a short duration.
 
-## 10. Deployment
+## 11. Deployment
 
 - Backend:
   - Entire backend is configured and deployed as Infra as code using AWS SAM template and CloudFormation.
@@ -439,7 +473,7 @@ model_family is used for model provider (eg OpenAI, Google etc) and model_name i
   - Front end deployment is currently manual. Build React app (npm run build) and deploy to S3 bucket configured for static website hosting through AWS Console (or aws s3 sync)
   - Note: SES can currently only send mails to pre-verified email addresses since I dont have production access yet
 
-## 11. Incomplete work
+## 12. Incomplete work
 
 - Work: Email delivery to pre-verified addresses only due to staging access.
 
@@ -448,3 +482,6 @@ model_family is used for model provider (eg OpenAI, Google etc) and model_name i
 - Work: PDF chunking uses pymupdf library, which is not very effective
 
   - Next Steps: While this works for the most part, it cannot handle images and tables inside pdf. There are many better libraries available, but they use torch. Downloading torch on lambda would exceed the allowed deployed package limits provided by AWS. The solution requires a major rearchitecture (move to EKS/ECS)
+
+- Work: AI model uses json mode, which is more error prone
+  - Next Steps: Contrained sampling was introduced while this project was underway, so switching to that would improve reliability (and code simplicity) for the structured output calls.
