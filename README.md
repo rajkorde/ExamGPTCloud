@@ -16,7 +16,22 @@ _TBD_
 
 ### 3.1 Software design
 
-_Talk about software architecture: Hexagonal Architecture as well_
+The implementation mostly follows the [hexagonal architecture](<https://en.wikipedia.org/wiki/Hexagonal_architecture_(software)>) and the create_exam() API is handled as a choreographed [SAGA pattern](https://microservices.io/patterns/data/saga.html).
+
+Most of the backend code resides in `examgpt-backend/examgpt-backend`. Following the practices of hexagonal architecture, the folder structure is broken down as follows:
+
+- `entrypoints` - contains code for all the lambda handlers.
+- `domain` - This folder handlers all the core logic, domain commands and abstractions
+  - `model` - Contains all the core classes.
+  - `ports` - Contains all the abstract classes for external service integration
+  - `commands` - Contains classes that define the inputs for all the domain commands (eg create_exam, save_chunk etc). All inputs for all commands are pydantic classes, so the input validation logic is separated from business logic
+  - `command_handlers` - Contains the implementation for all the domain commands (eg create_exam, save_chunk etc) using the service abstractions defined in ports folder.
+  - `ai` - Contains all implementation for AI based codes using the service abstractions defined in ports folder.
+  - `chat` - Contains helper classes for Telegram Bot implementation
+  - `chunker` - Contains abstractions and classes for chunking pdf files.
+- `adapter` - Contains the concrete classes that implement all the abstractions from ports directory
+  - `aws` - Contains implementation of all AWS related services
+  - `ai` - Contains implementation of all AI related services.
 
 ### 3.2 System Design
 
@@ -243,11 +258,11 @@ model_family is used for model provider (eg OpenAI, Google etc) and model_name i
 ## 10. Deployment
 
 - Backend:
-  - Entire backend is configured and deployed using Infra as code using AWS SAM template and CloudFormation.
+  - Entire backend is configured and deployed as Infra as code using AWS SAM template and CloudFormation.
   - Secrets are uploaded from a .env file to SSM using a python script.
 - Frontend:
   - Front end deployment is currently. Build React app (npm run build) and deploy to S3 bucket configured for static website hosting through AWS Console (or aws s3 sync)
-  - Note SES can currently only send mails to pre-verified email addresses since I dont have production access yet
+  - Note: SES can currently only send mails to pre-verified email addresses since I dont have production access yet
 
 ## 11. Incomplete work
 
