@@ -37,19 +37,19 @@ Most of the backend code resides in `examgpt-backend/examgpt-backend`. Following
 
 ### Create Exam Form submission sequence diagram
 
-This diagram shows the sequence of events when the user submits a create exam form.
+This diagram shows the simplified version of the sequence of events when the user submits a create exam form.
 
 ```mermaid
 sequenceDiagram
     participant U as User
     participant FE as Frontend (React)
     participant AG as API Gateway
-    participant CEL as Create Exam Lambda
+    participant CEL as create_exam Lambda
     participant S3 as S3
-    participant CL as Chunker Lambda
+    participant CL as chunker Lambda
     participant SNS as SNS
-    participant GL as Generate Lambda
-    participant VL as Validate Lambda
+    participant GL as generate Lambda
+    participant VL as validate Lambda
     participant DDB as DynamoDB
     participant SES as SES
 
@@ -97,14 +97,14 @@ sequenceDiagram
 
 ### Telegram chatbot sequence diagram
 
-This diagram shows the sequence of events when the user chats with the Telgram Chat bot
+This diagram shows the simplified version of sequence of events when the user chats with the Telgram Chat bot
 
 ```mermaid
 sequenceDiagram
     participant U as User
     participant TB as Telegram Bot
     participant AG as API Gateway
-    participant CSL as ChatServer Lambda
+    participant CSL as chat_server Lambda
     participant S3 as S3 (Chat State)
     participant DDB as DynamoDB (QATable)
     participant ExamDDB as DynamoDB (ExamTable)
@@ -166,6 +166,8 @@ sequenceDiagram
 
 ### Data Flow Diagram
 
+This DFD shows the simplified version of overall sequence of events
+
 ```mermaid
 graph TB
     subgraph "Frontend"
@@ -173,47 +175,42 @@ graph TB
     end
 
     subgraph "AWS Services"
-        B[S3 Static Website Hosting]
         C[API Gateway]
         D[Lambda: create_exam]
         E[DynamoDB: ExamTable]
-        F[S3: PDF Storage]
-        G[Lambda: Chunker]
+        F[S3: ContentBucket]
+        G[Lambda: chunker]
         H[DynamoDB: ChunkTable]
         I[SNS: ChunkTopic]
-        J[Lambda: Generate]
+        J[Lambda: generate]
         K[DynamoDB: QATable]
         L[SNS: ValidateTopic]
-        M[Lambda: Validate]
+        M[Lambda: validate]
         N[SES: Email Service]
-        O[Lambda: ChatServer]
-        P[S3: Chat State Storage]
+        R[DynamoDB: WorkTrackerTable]
     end
 
-    subgraph "User Devices"
-        Q[Telegram App]
-    end
 
-    A -->|1. Submit Form| C
-    C -->|2. Route Request| D
-    D -->|3. Create Exam| E
-    D -->|4. Generate Pre-signed URL| F
-    D -->|5. Return exam_code and URL| C
-    C -->|6. Return exam_code and URL| A
-    A -->|7. Upload PDF| F
-    F -->|8. Trigger on Put| G
-    G -->|9. Save Chunks| H
-    G -->|10. Send Chunk Batches| I
-    I -->|11. Trigger| J
-    J -->|12. Save Q&A| K
-    J -->|13. Notify Last Batch| L
-    L -->|14. Trigger| M
-    M -->|15. Validate Processing| K
-    M -->|16. Send Email| N
-    Q -->|17. Chat Requests| C
-    C -->|18. Route Chat| O
-    O -->|19. Save/Load State| P
-    O -->|20. Retrieve Q&A| K
+    A -->|1: Submit Form| C
+    C -->|2: Route Request| D
+    D -->|3: Create Exam| E
+    D -->|4: Generate Pre-signed URL| F
+    D -->|5: Return exam_code and URL| C
+    C -->|6: Return exam_code and URL| A
+    A -->|7: Upload PDF| F
+    F -->|8: Trigger on ObjectCreated| G
+    G -->|9: Save Chunks| H
+    G -->|10: Update Work Tracker Status| R
+    G -->|11: Send Chunk Batches| I
+    G -->|12:Update Exam State |E
+    I -->|13: Trigger| J
+    J -->|14: Save Q&A| K
+    J -->|15: Update Work Tracker Status| R
+    J -->|16: Notify if Last Batch| L
+    L -->|17: Trigger| M
+    M -->|18: Validate all chunks processed| H
+    M -->|19: Validate all QA processed| K
+    M -->|20: Send Email| N
 ```
 
 ## 4. Components
