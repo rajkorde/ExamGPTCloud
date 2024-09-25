@@ -16,7 +16,7 @@ The infrastructure is implemented using AWS. The frontend is a simple React App 
 
 **Demo Screenshots**
 
-![Email Screenshot](./examgpt_backend/assets/EmailScreenshot.png?raw=true "Email Screentshot")
+![Email Screenshot](./examgpt-backend/assets/EmailScreenshot.png?raw=true "Email Screentshot")
 
 ## 3. System Architecture
 
