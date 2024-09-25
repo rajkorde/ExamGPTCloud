@@ -54,7 +54,13 @@ async def async_handler(event: dict[Any, Any], context: Any):
     )
 
     obj = TelegramObject.de_json(json.loads(event["body"])).to_dict()
-    user_id = str(obj["message"]["from"]["id"])
+    if obj.get("message") is not None:
+        user_id = str(obj["message"]["from"]["id"])
+    elif obj.get("edited_message") is not None:
+        user_id = str(obj["edited_message"]["from"]["id"])
+    else:
+        logger.error(f"Invalid event specifiction: {event}")
+        return get_error()
 
     pickle_file_path = "/tmp/chat.pkl"
     pickle_object_key = f"chat/{user_id}/chat.pkl"

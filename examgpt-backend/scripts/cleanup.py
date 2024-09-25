@@ -50,7 +50,7 @@ def main():
     # List and process S3 buckets
     s3_buckets = s3_client.list_buckets()["Buckets"]
     for bucket in s3_buckets:
-        if "examgpt" in bucket["Name"].lower():
+        if bucket["Name"].lower().startswith("examgpt"):
             print(f"Found matching S3 bucket: {bucket['Name']}")
             delete_s3_bucket_contents(bucket["Name"])
         else:

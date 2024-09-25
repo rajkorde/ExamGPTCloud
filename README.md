@@ -10,7 +10,7 @@ The infrastructure is implemented using AWS. The frontend is a simple React App 
 
 ## 2. Demo
 
-_TBD_
+[![Demo Video link](http://img.youtube.com/vi/brRJYeuvS3Q/0.jpg)](https://www.youtube.com/watch?v=brRJYeuvS3Q)
 
 ## 3. System Architecture
 
