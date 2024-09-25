@@ -110,7 +110,7 @@ sequenceDiagram
     CL->>S3: Download pdf files
     CL->>CL: Process PDF into chunks
     CL->>DDB: Save chunks to ChunkTable
-    CL->>DDB: Update ExamState to chunked in ExamTable
+    CL->>DDB: Update ExamState to Chunked in ExamTable
     CL->>DDB: Create work tracker item in WorkTrackerTable
     CL->>SNS: Publish chunk batches to Chunk Topic
 
@@ -120,13 +120,13 @@ sequenceDiagram
     GL->>GL: Generate flashcards and MCQs
     GL->>DDB: Save Q&As to QATable
     GL->>DDB: Update completed_workers in WorkTrackerTable
-    GL-->>SNS: Publish to ValidatTopic if processing last batch
+    GL-->>SNS: Publish to ValidateTopic if processing last batch
     end
 
     SNS->>VL: Trigger Validate Lambda through ValidateTopic
     VL->>VL: Wait for all generate lambdas to finish
     VL->>DDB: Verify all chunks processed
-    VL->>DDB: Update exam status
+    VL->>DDB: Update exam status to Ready
     VL->>SES: Send completion email
     SES->>U: Send email notification
 
@@ -380,6 +380,7 @@ graph TB
 - Each chunk is first evaluated to see if there is enough information in the chunk to create a meaningful question. Often times when a chunk is comprised of things like table of contents or copyright notices, there is no point in creating QA from this.
 - Model prompts can be customized for each model and scenario and are saved as a yaml file, so they can be versions.
 - Models are instructed to respond in a specific json format derived from FlashCard and MultipleChoice classes and formatting is enforced automatically using pydantic.
+- Calls to OpenAI retried automatically 10 times with exponential backoff strategy to handle throttling.
 - Currently json mode is being used for OpenAI, because constrained sampling wasnt released when the project started.
 
 ## 7. Chat interface
@@ -475,7 +476,7 @@ model_family is used for model provider (eg OpenAI, Google etc) and model_name i
 - Data Protection:
   - Use HTTPS for all API communications.
   - Encrypt sensitive data at rest and in transit.
-  - All secrets are encoded inside SSM.
+  - All secrets are encrypted inside SSM.
 - Access Control:
   - Implement IAM roles with the least privilege principle.
   - Pre-signed URLs expire after a short duration.
