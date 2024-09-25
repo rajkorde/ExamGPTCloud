@@ -10,15 +10,23 @@ The infrastructure is implemented using AWS. The frontend is a simple React App 
 
 ## 2. Demo
 
-**Demo Video**
+### 2.1 Demo Video
 
 [![Demo Video link](http://img.youtube.com/vi/brRJYeuvS3Q/0.jpg)](https://www.youtube.com/watch?v=brRJYeuvS3Q)
 
-**Demo Screenshots**
+### 2.2 Demo Screenshots
 
-![Email Screenshot](./examgpt-backend/assets/EmailScreenshot.png?raw=true "Email Screentshot")
+**Website Screenshot**
+
+<img src="./examgpt-backend/assets/WebsiteScreenshot.png" alt="drawing" width="400"/>
+
+**Email Screenshot**
 
 <img src="./examgpt-backend/assets/EmailScreenshot.png" alt="drawing" width="400"/>
+
+**Telegram bot Screenshot**
+
+<img src="./examgpt-backend/assets/TelegramScreenshot.png" alt="drawing" width="400"/>
 
 ## 3. System Architecture
 
