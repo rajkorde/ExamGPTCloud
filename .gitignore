@@ -449,3 +449,4 @@ temp.py
 
 samconfig.toml
 scripts/*
+logs/
