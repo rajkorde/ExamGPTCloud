@@ -2,11 +2,11 @@
 
 ## 1. Project Overview
 
-ExamGPT helps users prepare for their exams by automatically generating flashcards and multiple-choice questions from their study materials (eg. PDF files). Studying techniques like [Spaced Repetition](https://en.wikipedia.org/wiki/Spaced_repetition) and [Retreival learning](https://ctl.wustl.edu/resources/using-retrieval-practice-to-increase-student-learning/) are common among students and creating high quality flash cards is a key component of these learning methods. There are software solutions like Anki and Quizlet that let students use flash cards effectively, but creating these flash cards is a time consuming process. This project attempts to solve that problem using AI.
+ExamGPT helps users prepare for their exams by automatically generating flashcards and multiple-choice questions from their study materials (eg. PDF files). Studying techniques like [Spaced Repetition](https://en.wikipedia.org/wiki/Spaced_repetition) and [Retrieval learning](https://ctl.wustl.edu/resources/using-retrieval-practice-to-increase-student-learning/) are common among students and creating high quality flash cards is a key component of these learning methods. There are software solutions like Anki and Quizlet that let students use flash cards effectively, but creating these flash cards is a time consuming process. This project attempts to solve that problem using AI.
 
-In ExamGPT, users goto a [website](https://myexamgpt.com/) and upload the their study material and get an exam code. Once ExamGPT is done processing the study material, it sends the user an email signalling completion and detailing next steps. Then the user can download [Telegram](https://telegram.org/) and practice using flashcards and multiple choice questions (MCQs) using their exam code and the ExamGPT telegram bot.
+In ExamGPT, users goto a [website](https://myexamgpt.com/) and upload their study material and get an exam code. Once ExamGPT is done processing the study material, it sends the user an email signaling completion and detailing next steps. Then the user can download [Telegram](https://telegram.org/) and practice using flashcards and multiple choice questions (MCQs) using their exam code and the ExamGPT telegram bot.
 
-The infrastructure is implemented using AWS. The frontend is a simple React App hosted as a static S3 website. The backend is fully serverless and easily scalable and uses a number of AWS services.
+The infrastructure is implemented using AWS. The frontend is a React App hosted as a static S3 website. The backend is fully serverless and scalable and uses a number of AWS services.
 
 ## 2. Demo
 
@@ -32,7 +32,7 @@ The infrastructure is implemented using AWS. The frontend is a simple React App 
 
 ### 3.1 Software design
 
-The implementation follows the [hexagonal architecture](<https://en.wikipedia.org/wiki/Hexagonal_architecture_(software)>) and the create_exam() API is handled roughly as a choreographed [SAGA pattern](https://microservices.io/patterns/data/saga.html).
+The implementation follows the [hexagonal architecture](<https://en.wikipedia.org/wiki/Hexagonal_architecture_(software)>) and the create_exam() API is handled as a choreographed [SAGA pattern](https://microservices.io/patterns/data/saga.html).
 
 Most of the backend code resides in `examgpt-backend/examgpt-backend`. Following the practices of hexagonal architecture, the folder structure is broken down as follows:
 
@@ -44,7 +44,7 @@ Most of the backend code resides in `examgpt-backend/examgpt-backend`. Following
   - `command_handlers` - Contains the implementation for all the domain commands (eg create_exam, save_chunk etc) using the service abstractions defined in ports folder.
   - `ai` - Contains implementation for AI based code using the service abstractions defined in ports folder.
   - `chat` - Contains helper classes for Telegram Bot implementation
-  - `chunker` - Contains abstractionss and concrete classes for chunking pdf files.
+  - `chunker` - Contains abstractions and concrete classes for chunking pdf files.
 - `adapter` - Contains the concrete classes that implement all the abstractions from ports directory
   - `aws` - Contains implementation of all AWS related services
   - `ai` - Contains implementation of all AI related services.
@@ -247,7 +247,7 @@ graph TB
     G -->|9: Save Chunks| H
     G -->|10: Update Work Tracker Status| R
     G -->|11: Send Chunk Batches| I
-    G -->|12:Update Exam State |E
+    G -->|12: Update Exam State |E
     I -->|13: Trigger| J
     J -->|14: Save Q&A| K
     J -->|15: Update Work Tracker Status| R
@@ -269,7 +269,7 @@ graph TB
 - Features:
   - Inform the user User about ExamGPT.
   - Get input form for Exam Name, Email, and PDF upload and send to backend.
-  - Upload Study material (refered to PDF file from here on) to pre-signed URL provided by backend.
+  - Upload Study material (referred to PDF file from here on) to pre-signed URL provided by backend.
   - Displays exam_code after submission and show next steps.
 
 ### 5.2 Backend
@@ -285,7 +285,7 @@ graph TB
       - Stores Exam object with all exam details in ExamTable (DynamoDB).
       - Generates a pre-signed S3 URL and sends it (and exam_code) to frontend.
     - Notes:
-      - Uses pre-signed S3 URL because direct upload through API gateway has a limit of 10 MB. Upload using pre-signed S3 URL is 5 GB.
+      - Direct upload through API gateway has a limit of 10 MB. This is often not enough for pdf docs. So file upload is handled using pre-signed S3 URL, where the document size limit is 5 GB.
   - `chunker`:
     - Chunks pdf files into small chunks and triggers a series of generate lambdas that will create flashcards and multiple choices questions (refered to QA henceforth) for each of the chunks
     - Trigger: S3 ObjectCreated event.
@@ -299,7 +299,7 @@ graph TB
       - Breaks list of chunks in batches of CHUNK_BATCH_SIZE and publishes one SNS messages to ChunkTopic for each batch.
     - Notes:
       - Since spinning up a new lambda for each chunk would be slow and spinning up only a single lambda would not be practical (because of 15 minute execution limits of AWS lambdas), a batching approach is used. Each generate lambda would handle a batch of chunks.
-      - To ensure that we can track the completion of all of the generate lamdbas, a work tracker table is used that tracks the completion of each generate lambda.
+      - To ensure that we can track the completion of all of the generate lambdas, a work tracker table is used that tracks the completion of each generate lambda.
   - `generate`:
 
     - Generate a set of QA (flash cards and multiple choices) for a batch of chunks using AI.
@@ -313,7 +313,7 @@ graph TB
       - For each chunk that generates at least one Flashcard or MCQ, sets the appropriate flags in the ChunkTable
       - Stores all Flashcards and MCQs in QATable (DynamoDB).
       - Once it is done with the work, updates the completed_worker count in WorkTrackerTable.
-      - If its the last batch, publishes SNS message to ValidateTopic.
+      - If it's the last batch, publishes SNS message to ValidateTopic.
 
     - Notes:
       - The AI model first checks if the chunk has enough content to generate a flashcard or MCQ. Sometimes the chunk is mainly comprised on Table of Contents or copyright notices etc, so this is skipped
@@ -350,7 +350,7 @@ graph TB
     - ExamTable: Stores exam metadata.
     - ChunkTable: Stores chunk information.
     - QATable: Stores generated flashcards and MCQs.
-    - WorkTrackerTable: Stores generate lamdba state
+    - WorkTrackerTable: Stores generate lambda state
   - Amazon S3:
     - Stores uploaded PDFs (ContentBucket).
     - Stores the telegram chat state (ChatBucket).
@@ -378,10 +378,10 @@ graph TB
 
 - Foundation LLMs are used to generate Flash cards and MCQs from a given chunk. Any good model can be used with very minor changes in code. Current implementation uses OpenAI's gpt-4o-mini.
 - Each chunk is first evaluated to see if there is enough information in the chunk to create a meaningful question. Often times when a chunk is comprised of things like table of contents or copyright notices, there is no point in creating QA from this.
-- Model prompts can be customized for each model and scenario and are saved as a yaml file, so they can be versions.
+- Model prompts can be customized for each scenario-model combination are saved as a yaml file, so they can be versioned.
 - Models are instructed to respond in a specific json format derived from FlashCard and MultipleChoice classes and formatting is enforced automatically using pydantic.
 - Calls to OpenAI retried automatically 10 times with exponential backoff strategy to handle throttling.
-- Currently json mode is being used for OpenAI, because constrained sampling wasnt released when the project started.
+- Currently json mode is being used for OpenAI, because constrained sampling wasn't released when the project started.
 
 ## 7. Chat interface
 
@@ -488,9 +488,9 @@ model_family is used for model provider (eg OpenAI, Google etc) and model_name i
   - Secrets are uploaded from a .env file to SSM using a python script.
 - Frontend:
   - Front end deployment is currently manual. Build React app (npm run build) and deploy to S3 bucket configured for static website hosting through AWS Console (or aws s3 sync)
-  - Note: SES can currently only send mails to pre-verified email addresses since I dont have production access yet
+  - Note: SES can currently only send mails to pre-verified email addresses since I don't have production access yet. Alternatively, switch to a cloud based service like SendGrid.
 
-## 12. Incomplete work
+## 12. Future work
 
 - Work: Email delivery to pre-verified addresses only due to staging access.
 
@@ -501,4 +501,4 @@ model_family is used for model provider (eg OpenAI, Google etc) and model_name i
   - Next Steps: While this works for the most part, it cannot handle images and tables inside pdf. There are many better libraries available, but they use torch. Downloading torch on lambda would exceed the allowed deployed package limits provided by AWS. The solution requires a major rearchitecture (move to EKS/ECS)
 
 - Work: AI model uses json mode, which is more error prone
-  - Next Steps: Contrained sampling was introduced while this project was underway, so switching to that would improve reliability (and code simplicity) for the structured output calls.
+  - Next Steps: Constrained sampling was introduced while this project was underway, so switching to that would improve reliability (and code simplicity) for the structured output calls.
